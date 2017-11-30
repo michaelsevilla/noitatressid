@@ -1,0 +1,71 @@
+\section{Related Work}
+
+Key-value storage organizations for scientific applications is a field gaining
+rapid interest. In particular, the analysis of the ParSplice keyspace and the
+development of an appropriate scheme for load balancing is a direct response to
+a case study for computation caching in scientific
+applications~\cite{jenkins:ipdsw17-mochi}. In that work the authors motivated
+the need for a flexible load balancing \emph{microservice} to efficiently scale
+a memoization microservice. Our work is also heavily influenced by the
+Malacology project~\cite{sevilla:eurosys17-malacology} which seeks to provide
+fundamental services from within the storage system ({\it e.g.}, consensus) to
+the application.  Our plan is to use
+MDHIM~\cite{greenberg:hotstorage2015-mdhim} as our back-end key-value store
+because it was designed for HPC and has the proper mechanisms for migration
+already implemented.  
+
+State-of-the-art distributed file systems partition write-heavy workloads and
+replicate read-heavy workloads, similar to the approach we are advocating here.
+IndexFS~\cite{ren:sc2014-indexfs} partitions directories and clients write to
+different partitions by grabbing leases and caching ancestor metadata for path
+traversal. ShardFS~\cite{xiao:socc15-shardfs} takes the replication approach to
+the extreme by copying all directory state to all nodes.
+CephFS~\cite{weil:sc2004-dyn-metadata, weil:osdi2006-ceph} employs both
+techniques to a lesser extent; directories can be replicated or sharded but the
+caching and replication policies are controlled with tunable parameters.  These
+systems still need to be tuned by hand with {\it ad-hoc} policies designed for
+specific applications.  Setting policies for migrations is arguably more
+difficult than adding the migration mechanisms themselves.  For example,
+IndexFS/CephFS use the GIGA+~\cite{patil:fast2011-giga} technique for
+partitioning directories at a \emph{predefined} threshold. Mantle makes headway
+in this space by providing a framework for exploring these policies, but does
+not attempt anything more sophisticated ({\it e.g.}, machine learning) to
+create these policies. 
+
+% ml and autotuning
+Auto-tuning is a well-known technique used in
+HPC~\cite{behzad:sc2013-autotuning, behzad:techreport2014-io-autotuning}, big
+data systems systems~\cite{herodotou_starfish_2011}, and
+databases~\cite{schnaitter_index_2009}.  Like our work, these systems focus on
+the physical design of the storage ({\it e.g.} cache size) but since we focused
+on a relatively small set of parameters (cache size, migration thresholds), we
+did not need anything as sophisticated as the genetic algorithm used
+in~\cite{behzad:sc2013-autotuning}.  We cannot drop these techniques into
+ParSplice because the magnitude and speed of the workload hotspots/flash crowds
+makes existing approaches less applicable. 
+
+\section{Conclusion}
+
+Data management encompasses a wide range of techniques that vary by application
+and storage system.  Yet, the techniques require policies that shape the
+decision making and finding the best policies is a difficult, multi-dimensional
+problem.  We iterate to a custom solution for our target application that uses
+workload access patterns to size its caches. Without tuning or parameter
+sweeps, our solution saves memory without sacrificing performance for a variety
+of initial conditions, including the scale, duration, configuration, and
+hardware of the simulation. More importantly, rather than attempting to
+construct a single, complex policy that works for a variety of scenarios, we
+instead use the Mantle framework to enable software-defined storage systems to
+flexibly change policies as the workload changes.  We also observe that many of
+the primitives and strategies have enough in common with data management in
+file systems that they both can be expressed with similar semantics.
+
+This lays the foundation for future work, where we will focus on formalizing a
+collection of general data management policies that can be used across
+applications and storage systems.  The value of such a collection eases the
+burden of policy development and paves the way for automated solutions such as
+(1) adaptable policies that switch to new strategies when the current strategy
+behaves poorly ({\it e.g.}, thrashing, making no progress, etc.), and (2)
+policy generation, where new policies are constructed by examining the
+collection of existing policies.  Ultimately, we hope that this automation
+enables control of policies by machines instead of administrators. 

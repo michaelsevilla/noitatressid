@@ -1,0 +1,75 @@
+%% uctest.tex 11/3/94
+%% Copyright (C) 1988-2004 Daniel Gildea, BBF, Ethan Munson.
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2003/12/01 or later.
+%
+% This work has the LPPL maintenance status "maintained".
+% 	
+% The Current Maintainer of this work is Daniel Gildea.
+\documentclass[11pt]{ucthesis}
+
+%\usepackage[linesnumbered,noend]{algorithm2e}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage[font=bf]{caption}
+\usepackage{subcaption}
+\usepackage{courier}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{mathtools}
+\usepackage{amsmath}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage{amssymb}
+\usepackage{pifont}
+\usepackage[normalem]{ulem}
+%\usepackage[linesnumbered]{algorithm2e}
+\usepackage{arydshln}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{listings}
+\usepackage{minted}
+
+\newcommand{\tab}{\hspace*{2em}}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\newcommand{\centcmark}{\centering\checkmark}
+\DeclareCaptionType{copyrightbox}
+\def\dsp{\def\baselinestretch{2.0}\large\normalsize}\dsp
+% * <mikesevilla3@gmail.com> 2016-03-03T17:27:00.193Z:
+%
+% ^.
+
+\begin{document}
+  %\ssp
+  \include{./chapters/title}
+  \include{./chapters/introduction}
+  \include{./chapters/related-work}
+  %\include{./chapters/ceph} 
+  \include{./chapters/mantle}
+  \include{./chapters/controlplane}
+  \include{./chapters/controlplane/malacology/5_services_built_on_malacology}
+  \include{./chapters/controlplane/malacology/6_evaluation}
+  \include{./chapters/controlplane/parsplice/1_introduction}
+  \include{./chapters/controlplane/parsplice/2_parsplice-keyspace-analysis}
+  \include{./chapters/controlplane/parsplice/3_methodology}
+  \include{./chapters/controlplane/parsplice/4_dynamic-policies}
+  \include{./chapters/controlplane/parsplice/5_file-systems}
+  \include{./chapters/controlplane/parsplice/6_conclusion}
+  \include{./chapters/cudele/1_introduction}
+  \include{./chapters/cudele/2_related_work}
+  \include{./chapters/cudele/3_posix_overheads}
+  \include{./chapters/cudele/4_methodology}
+  \include{./chapters/cudele/5_implementation}
+  \include{./chapters/cudele/6_results}
+  \include{./chapters/cudele/7_conclusion}
+
+  \bibliographystyle{abbrv}
+  \bibliography{paper}
+  \include{appendix}
+\end{document}

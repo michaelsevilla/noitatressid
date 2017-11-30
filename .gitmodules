@@ -1,0 +1,6 @@
+[submodule "biblio"]
+	path = biblio
+	url = https://github.com/michaelsevilla/biblio.git
+[submodule "paper/biblio"]
+	path = paper/biblio
+	url = https://github.com/michaelsevilla/biblio.git

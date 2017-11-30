@@ -1,0 +1,165 @@
+\section{Methodology}
+
+%  \item background: CephFS implementation
+To explore software-defined cache management, we use the data management
+language and policy engine presented in~\cite{sevilla:sc15-mantle}. The
+prototype in that paper, Mantle, was built on CephFS and lets administrators
+control file system metadata load balancing policies.  We now refer to Mantle
+as a policy engine that supports our data management language.  The basic
+premise is that data management policies can be expressed with a simple API
+consisting of ``when", ``where", and ``how much". The ``when" policy controls
+how aggressive or conservative the decisions are; ``where" controls how
+distributed or concentrated the data should be; and ``how much" controls the
+amount of data that should be sent. There is also a ``load" policy that lets
+administrators specify how to collapse many metrics into a single load metric
+({\it e.g.}, \(2\times\texttt{cpu} + 3\times\texttt{memory usage}\)).
+
+The succinctness of the API lets users inject multiple, possibly dynamic, policies. In
+this work we focus on a single node, so the ``where" policy is not used. When
+we move ParSplice to a distributed key-value store back-end, the ``where" policy
+will be used to determine which key-value pairs should be moved to which node.
+
+\subsection{Extracting Mantle as a Library}
+\label{sec:extracting}
+
+We extracted Mantle as a library and Figure~\ref{fig:mantle} shows how it is
+linked into a storage system service.  Administrators write policies in Lua from whatever
+domain they choose ({\it e.g.}, statistics, machine learning, storage system)
+and the policies are embedded into the runtime by Mantle.  We chose Lua for
+simplicity, performance, and portability; it is a scripting language with
+simple syntax, which allows administrators to focus on the policies themselves;
+it was designed as an embeddable language, so it is lightweight and does less
+type checking; and it interfaces nicely with C/C++.  When the storage system makes
+decisions it executes the administrator-defined policies for when/where/how
+much and returns a decision.  To do this, the storage system needs to be modified to
+(1) provide an environment of metrics and (2) identify where policies are set.
+These modification points are shown by the colored boxes in
+Figure~\ref{fig:mantle} and described below.
+
+\begin{figure}[t]
+  \noindent\includegraphics[width=0.5\textwidth]{./chapters/controlplane/parsplice/figures/mantle.png}\\
+
+  \caption{Extracting Mantle as library.\label{fig:mantle}}
+
+\end{figure}
+
+\begin{table}
+  \centering
+  \begin{tabular}{ r | l | l }
+  Metrics     & Data Structure & Description \\\hline
+  Cluster     & \{server \(\rightarrow\) \{metric \(\rightarrow\) val\}\}
+              & resource util. for servers \\
+  Time Series & [(ts, val), ..., (ts, val)]
+              & accesses by timestamp (ts) \\
+  && \\
+              & Storage System & Example \\\hline
+  Cluster     & File Systems & CPU util., Inode reads \\
+              & ParSplice    & CPU util., Cache size \\
+  Time Series & File Systems & Accesses to directory \\
+              & ParSplice    & Accesses to key in DB\\
+  \end{tabular}
+  \caption{Types of metrics exposed by the storage system to the policy engine using Mantle.\label{table:metrics}}
+\end{table}
+
+\subsubsection{Environment of Metrics} storage systems expose \textbf{cluster} metrics
+for describing resource utilizations and \textbf{time series} metrics for
+describing accesses to some data structure over time. Table~\ref{table:metrics}
+shows how these metrics are accessed from the policies written by
+administrators. 
+
+For cluster metrics, the storage system passes a dictionary to Mantle. Policies access
+the cluster metric values by indexing into a Lua table using \texttt{server}
+and \texttt{metric}, where server is a node identifier ({\it e.g.}, MPI Rank,
+metadata server name) and metric is a resource name.  Metrics used for file
+system metadata load balancing are shown by the ``environment" box in
+Figure~\ref{fig:mantle}. The measurements and exchange of metrics between
+servers is done by the storage system; Mantle in CephFS leverages metrics from other
+servers collected using CephFS's heartbeats.  For example, a policy written for
+an MPI-based storage system can access the CPU utilization of the first rank in a
+communication group using:
+
+\begin{figure}[h]
+\footnotesize
+\begin{minted}{lua}
+load = servers[0]['cpu']
+\end{minted}
+\end{figure}
+
+For time series metrics, the storage system passes an array of \texttt{(timestamp,
+value)} pairs to Mantle and the policies can iterate over the values. The
+storage system uses a pointer to the time series to facilitate time series with many
+values, like accesses to a database or directory in the file system namespace.
+This decision limits the time series metrics to only include values from the
+{\it current} node, although this is not a limitation of Mantle itself.  For
+example, a policy that uses accesses to a directory in a file system as a
+metric for load collects that information using:
+
+\begin{figure}[h]
+\footnotesize
+\begin{minted}{lua}
+d = timeseries()       -- d(ata) from storage system
+for i=1,d:size() do    -- iterate over timeseries
+  ts, value = d:get(i) -- index into timeseries 
+  if value == 'mydirectory' then
+    count = count + 1
+  end
+end
+\end{minted}
+\end{figure}
+
+
+
+% policies themselves
+\subsubsection{Policies Written as Callbacks} the ``callback" box in
+Figure~\ref{fig:mantle} shows an example policy for ``when()", where the
+current server (\texttt{whoami}) migrates load if it is has load
+(\texttt{>0.1}) and if its neighbor server (\texttt{whoami + 1}) does not have
+load (\texttt{<0.1}). The load is calculated using the metrics provided by the
+environment.
+
+Mantle also provides functions for persisting state across decisions.
+\texttt{WRState(s)} saves state \texttt{s}, which can be a number or boolean
+value, and \texttt{RDState()} returns the state saved by a previous iteration.
+For example, a ``when" policy can avoid trimming a cache or migrating data if
+it had performed that operation in the previous decision.
+
+%\begin{figure}[h]
+%\footnotesize
+%\begin{minted}{lua}
+%if RDState() == 1 then
+%  WRState(0)   -- the next decision will return true
+%  return false
+%else then
+%  WRState(1)   -- the next decision will return false
+%  return true
+%end
+%\end{minted}
+%\end{figure}
+
+%of timestamp (ts), value pairs representing accesses over time types of
+\subsection{Integrating Mantle into ParSplice}
+
+% env of metrics
+Using Mantle cluster metrics, we expose cache size, CPU utilization, and memory
+pressure of the worker node to the cache management policies. In
+Section~\S\ref{sec:arch-specific} we only end up using the cache size although
+the other metrics proved to be valuable debugging tools. Using Mantle time
+series metrics, we expose accesses to the cache as a list of \texttt{timestamp,
+key} pairs. In Section~\S\ref{sec:dom-specific}, we explore a key access
+pattern detection algorithm that uses this metric.
+
+% where policies are made
+We link Mantle into all caches in the system and put the ``when" and ``how
+much" callbacks alongside code that checks for memory pressure. It is executed
+right before the worker processes incoming and outgoing put/get transactions to
+the cache. We only do cache management once every second to avoid maintaining
+the cache for every request. We expected to have to increase this polling
+interval to accommodate more complex policies but even our most complicated
+policy in Section~\S\ref{sec:dom-specific} had a negligible effect on
+performance when executed every second (within the standard deviation for
+multiple runs when compared against a policy that returns immediately). This
+may be because the worker is not overloaded and the bottleneck is somewhere
+else in the system.  As stated previously, we do not use the ``where" part of
+Mantle because we focus on a single node, but this part of the API will be used
+when we move the caches and storage nodes to a key-values store back-end that
+uses key load balancing and repartitioning.
