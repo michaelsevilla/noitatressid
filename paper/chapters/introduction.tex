@@ -2,14 +2,87 @@
 % INTRODUCTION
 \chapter{Introduction}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Problem: large systems are difficult to manage
-Systems that process and store large amounts of data (peta\-bytes and beyond) are difficult to manage. Computing has reached an era where the data is too large, the software is too complicated, the hardware is too fast, and the events are too frequent for any human to manage. These drastic changes should alter how large systems are designed and deployed. The most elegant and future-proof solution for improving and maintaining performance in these large systems is to have the system dynamically balance its own load and resources.  
+Systems that process and store large amounts of data (petabytes and beyond) are
+difficult to manage. Computing has reached an era where the data is too large,
+the software is too complicated, the hardware is too fast, and the events are
+too frequent for any human to manage. These drastic changes should alter how
+large systems are designed and deployed. The most elegant and future-proof
+solution for improving and maintaining performance in these large systems is to
+improve the communication between applications and the storage.  The
+contributions of my thesis is enabled by three trends that lead to more
+software layers: (1) more data, (2) extreme heterogeneity in data centers, and
+(3) open source systems (OSS). The proliferation of large complex stacks
+composed of many layers makes this thesis an especially timely solution.
+
+% Timeliness: layers on layers; {big stacks, overhead, proof}
+The overwhelming volume, velocity, and veracity of today's data shapes
+modern software. When data grows too large, we scale to larger systems, either
+by scaling out or up. Focusing on the scale-out model has given birth to
+stacks, like Apache, that are used in industry, laboratories, and academia. But
+the size of these stacks leads to increased complexity, as code bases are
+larger and there are more layers~\cite{sevilla:eurosys17-malacology}, resulting
+in reduced performance, redundant code, and longer code paths. The overhead of
+these stacks are so high that many workloads can be outperformed by a single
+node with less resources~\cite{sevilla:discs2013-framework,
+rowstron:hotcdp2012-hadoop-vs-single-node, schwarzkopf:hotcloud2012-7-sins,
+gigaspaces:whitepaper2011-su-vs-so, michael:2007pdps-scale-up-x-scale-out}.
+
+% Timeliness: extreme hetoregeneity {memory wall, more hardware, more runtimes}
+% leads to more layers
+% time is ripe to improve co-design
+% cite lunatic fringe
+
+% Timeliness: oss faciliates transparency {vendor lock in, efficiency, collab}
+% leads to more layers
+% time is ripe to improve co-design
+
+% Soln: programmable storage to control policies for 3 data management 
+
 
 % This has been done before
-This idea is not new. As an example, consider the evolution of single node operating systems. System speeds stopped doubling according to Moore's law because the memory transfer rate (speed) and the number of onboard connections (physical space) were limiting performance, a phenomenon known as the ``memory wall"~\cite{wulf:sigarch1995-memory-wall}. As a result, systems took control away from the user with new abstractions, such as multicore systems and virtual memory. The system migrated the system resources and lied to the user about the available resources. Although this comes at the comes cost of transparency (i.e. requiring tools like PIR~\cite{olschanowsky:ICPPW2010-PIR}, Pin~\cite{luk:PLDI2005-pin}, and the Linux memory tool suite~\cite{movall:atec2005-physical}), the community has come to the realization that letting the system manage its own load and resources is better than manually tuning knobs. 
+This idea is not new. As an example, consider the evolution of single node
+operating systems. System speeds stopped doubling according to Moore's law
+because the memory transfer rate (speed) and the number of onboard connections
+(physical space) were limiting performance, a phenomenon known as the ``memory
+wall"~\cite{wulf:sigarch1995-memory-wall}. As a result, systems took control
+away from the user with new abstractions, such as multicore systems and virtual
+memory. The system migrated the system resources and lied to the user about the
+available resources. Although this comes at the comes cost of transparency
+(i.e. requiring tools like PIR~\cite{olschanowsky:ICPPW2010-PIR},
+Pin~\cite{luk:PLDI2005-pin}, and the Linux memory tool
+suite~\cite{movall:atec2005-physical}), the community has come to the
+realization that letting the system manage its own load and resources is better
+than manually tuning knobs. 
 
 % This is a problem in distributed systems
-Today, we face a similar dilemma in distributed systems. Designers statically configure large systems to ensure they can handle the intended load. This is a three step process: (1) characterize the workloads, (2) select a scaling architecture, and (3) repetitively tune system parameters until performance is optimal. This process is especially difficult because of the scale of the data and the complexity of the system. Characterizing workloads is usually only done for the most popular systems, such as Hadoop~\cite{chen:2012ccpe-distributed-db,chen:2012vldb-cross-industry,chen:2011mascots-suites,huang:icde2010-hibench}. Selecting the best scaling architectures is difficult, even for seasoned experts. For example, deciding whether to scale-out (by adding more nodes to the system) or scale-up (by adding resources to a single node) is difficult because many of the assumptions about yesterday's comparisons and architectures~\cite{michael:2007pdps-scale-up-x-scale-out,talkington:2002journal-scaling,wisniewski:2007europar-commercial-scale-out} are not true today~\cite{appuswamy:socc2013-hadoop-vs-single-node,rowstron:hotcdp2012-hadoop-vs-single-node,sevilla:discs2013-framework,sevilla:lspp2014-supmr}. Finally, resolving trade-offs by tuning system parameters is something of a black art for large scale processing systems. Even for well-understood systems such as Hadoop, understanding the trade-offs and the effects they have on performance is difficult~\cite{herodotou:cidr2011-starfish,wang:mascots2009-mrperf}.  Self-tuning systems have crept their way into frameworks such as MapReduce for distributed processing~\cite{herodotou:cidr2011-starfish}, query analysis for distributed databases~\cite{lefevre:danac2013-evolutionary-analytics}, and disk arrays for distributed storage~\cite{anderson:fast2001-hippodrome}, but these tools are domain specific and fail to balance load and resources across multiple systems. 
+Today, we face a similar dilemma in distributed systems. Designers statically
+configure large systems to ensure they can handle the intended load. This is a
+three step process: (1) characterize the workloads, (2) select a scaling
+architecture, and (3) repetitively tune system parameters until performance is
+optimal. This process is especially difficult because of the scale of the data
+and the complexity of the system. Characterizing workloads is usually only done
+for the most popular systems, such as
+Hadoop~\cite{chen:2012ccpe-distributed-db,chen:2012vldb-cross-industry,chen:2011mascots-suites,huang:icde2010-hibench}.
+Selecting the best scaling architectures is difficult, even for seasoned
+experts. For example, deciding whether to scale-out (by adding more nodes to
+the system) or scale-up (by adding resources to a single node) is difficult
+because many of the assumptions about yesterday's comparisons and
+architectures~\cite{michael:2007pdps-scale-up-x-scale-out,talkington:2002journal-scaling,wisniewski:2007europar-commercial-scale-out}
+are not true
+today~\cite{appuswamy:socc2013-hadoop-vs-single-node,rowstron:hotcdp2012-hadoop-vs-single-node,sevilla:discs2013-framework,sevilla:lspp2014-supmr}.
+Finally, resolving trade-offs by tuning system parameters is something of a
+black art for large scale processing systems. Even for well-understood systems
+such as Hadoop, understanding the trade-offs and the effects they have on
+performance is
+difficult~\cite{herodotou:cidr2011-starfish,wang:mascots2009-mrperf}.
+Self-tuning systems have crept their way into frameworks such as MapReduce for
+distributed processing~\cite{herodotou:cidr2011-starfish}, query analysis for
+distributed databases~\cite{lefevre:danac2013-evolutionary-analytics}, and disk
+arrays for distributed storage~\cite{anderson:fast2001-hippodrome}, but these
+tools are domain specific and fail to balance load and resources across
+multiple systems. 
 
 %\footnote{I asked the authors of~\cite{appuswamy:socc2013-hadoop-vs-single-node} how they tune Hadoop and they said ``Oh, we hired an intern to do that".}
 
