@@ -8,13 +8,13 @@ Systems that process and store large amounts of data (petabytes and beyond) are
 difficult to manage. Computing has reached an era where the data is too large,
 the software is too complicated, the hardware is too fast, and the events are
 too frequent for any human to manage. These drastic changes should alter how
-large systems are designed and deployed. The most elegant and future-proof
-solution for improving and maintaining performance in these large systems is to
-improve the communication between applications and the storage.  The
-contributions of my thesis is enabled by three trends that lead to more
-software layers: (1) more data, (2) extreme heterogeneity in data centers, and
-(3) open source systems (OSS). The proliferation of large complex stacks
-composed of many layers makes this thesis an especially timely solution.
+large systems are designed and deployed. We argue that the most elegant and
+future-proof solution for improving and maintaining performance in these large
+systems is to improve the communication between applications and the storage.
+Our solution is  motivated by three trends that lead to more software layers:
+(1) more data, (2) extreme heterogeneity, and (3) open-source software.  The
+proliferation of large complex stacks composed of many layers makes this thesis
+an especially timely solution.
 
 % Timeliness: layers on layers; {big stacks, overhead, proof}
 The overwhelming volume, velocity, and veracity of today's data shapes
@@ -30,123 +30,41 @@ rowstron:hotcdp2012-hadoop-vs-single-node, schwarzkopf:hotcloud2012-7-sins,
 gigaspaces:whitepaper2011-su-vs-so, michael:2007pdps-scale-up-x-scale-out}.
 
 % Timeliness: extreme hetoregeneity {memory wall, more hardware, more runtimes}
-% leads to more layers
-% time is ripe to improve co-design
-% cite lunatic fringe
+Extreme heterogeneity in both software and hardware has also lead to larger
+software stacks that manage resources. Data centers are larger and have faster
+devices because device and network speeds are scaling much faster than DRAM
+speeds. The so-called memory wall~\cite{wulf:sigarch1995-memory-wall} pushes
+resource management into software runtimes, which must now manage large numbers
+of heterogeneous devices. The increasing momentum behind disaggregated
+storage~\cite{klimovic:asplos2017-reflex, klimovic:eurosys16-disagg}, a model
+that uses software as the control plane and reduces the CPU requirements of
+devices, is result of prognoses we are heading towards data centers that need
+to provision a CPU per storage device~\cite{samuels:oss16}. Regardless of where
+the future leads, the scale and complexity of software will continue to scale
+with the size of the architectures they manage.
 
 % Timeliness: oss faciliates transparency {vendor lock in, efficiency, collab}
-% leads to more layers
-% time is ripe to improve co-design
+Finally, the last trend that has lead to the explosion of software is
+open-source software. Open-source software is gaining traction because it helps
+consumers avoid vendor lock in, it leads to more efficient implementations, and
+it encourages collaboration. All these advantages are rooted in transparency,
+as developers can work together to write code that manages the extreme
+heterogeneity mentioned above, but it also lets developers see the source code
+for the systems they use ``off-the-shelf". In short, open-source software leads
+to more software because (1) code can come from different domains,
+organizations, and communities, and (2) it easier to write optimizations
+because functionality is fully exposed.
 
-% Soln: programmable storage to control policies for 3 data management 
-
-
-% This has been done before
-This idea is not new. As an example, consider the evolution of single node
-operating systems. System speeds stopped doubling according to Moore's law
-because the memory transfer rate (speed) and the number of onboard connections
-(physical space) were limiting performance, a phenomenon known as the ``memory
-wall"~\cite{wulf:sigarch1995-memory-wall}. As a result, systems took control
-away from the user with new abstractions, such as multicore systems and virtual
-memory. The system migrated the system resources and lied to the user about the
-available resources. Although this comes at the comes cost of transparency
-(i.e. requiring tools like PIR~\cite{olschanowsky:ICPPW2010-PIR},
-Pin~\cite{luk:PLDI2005-pin}, and the Linux memory tool
-suite~\cite{movall:atec2005-physical}), the community has come to the
-realization that letting the system manage its own load and resources is better
-than manually tuning knobs. 
-
-% This is a problem in distributed systems
-Today, we face a similar dilemma in distributed systems. Designers statically
-configure large systems to ensure they can handle the intended load. This is a
-three step process: (1) characterize the workloads, (2) select a scaling
-architecture, and (3) repetitively tune system parameters until performance is
-optimal. This process is especially difficult because of the scale of the data
-and the complexity of the system. Characterizing workloads is usually only done
-for the most popular systems, such as
-Hadoop~\cite{chen:2012ccpe-distributed-db,chen:2012vldb-cross-industry,chen:2011mascots-suites,huang:icde2010-hibench}.
-Selecting the best scaling architectures is difficult, even for seasoned
-experts. For example, deciding whether to scale-out (by adding more nodes to
-the system) or scale-up (by adding resources to a single node) is difficult
-because many of the assumptions about yesterday's comparisons and
-architectures~\cite{michael:2007pdps-scale-up-x-scale-out,talkington:2002journal-scaling,wisniewski:2007europar-commercial-scale-out}
-are not true
-today~\cite{appuswamy:socc2013-hadoop-vs-single-node,rowstron:hotcdp2012-hadoop-vs-single-node,sevilla:discs2013-framework,sevilla:lspp2014-supmr}.
-Finally, resolving trade-offs by tuning system parameters is something of a
-black art for large scale processing systems. Even for well-understood systems
-such as Hadoop, understanding the trade-offs and the effects they have on
-performance is
-difficult~\cite{herodotou:cidr2011-starfish,wang:mascots2009-mrperf}.
-Self-tuning systems have crept their way into frameworks such as MapReduce for
-distributed processing~\cite{herodotou:cidr2011-starfish}, query analysis for
-distributed databases~\cite{lefevre:danac2013-evolutionary-analytics}, and disk
-arrays for distributed storage~\cite{anderson:fast2001-hippodrome}, but these
-tools are domain specific and fail to balance load and resources across
-multiple systems. 
-
-%\footnote{I asked the authors of~\cite{appuswamy:socc2013-hadoop-vs-single-node} how they tune Hadoop and they said ``Oh, we hired an intern to do that".}
-
-% Why we need migration
-Resource migration is an important tool for dynamically balancing load and resources across multiple systems. While many fields, such as cloud computing~\cite{zhang:journal2010-cloud-challenges} and databases~\cite{elmore:sigmod2013-pythia}, have shown the benefit of migrating resources, they only look at migrating resource consumers ({\it i.e.} a virtual machine, application, or process), instead of the resources themselves. Systems research has already shown that moving compute resources, such as cores~\cite{zhang:journal2010-cloud-challenges}, memory~\cite{chapman:atc2009-vnuma}, IO~\cite{raj:hpdc2007-io-virtualization}, and network~\cite{georgiadis:atn1996-network-qos}, has arrived. With such revolutionary technology on the horizon, it is important that we start to explore migrating the actual {\it resources}, instead of the resource consumers.
-
-% How load balancing is analogous to metadata management
-Automatic load balancing and resource migration in a distributed system is often times a multi-objective optimization problem. Many of the trade-offs, such as maintaining global knowledge, managing cluster-wide trade-offs, and accounting for the cost of migration, mirror general distributed systems problems. When we finally have the ability to migrate different resources, how do we know when and where to move them? Such migration will depend on the utilization, configuration, and workload, but how will we weight these factors to design robust, guaranteeable systems? To explore different heuristics for resource migration and load balancing, we narrow the scope to look at an analogous problem in distributed file systems: the metadata management problem. We hypothesize that an effective metadata management strategy will also depend on the utilization, configuration, and workload. 
-
-% Our specific problem
-% 2. this is sufficiently challenging
-\section{Metadata management challenges}
-Whenever a file is created, modified, or deleted, the client must access the file's metadata. Serving metadata and maintaining a file system namespace is sufficiently challenging because metadata requests result in small, frequent accesses to the underlying storage system~\cite{roselli:atec2000-FS-workloads}. This skewed workload is very different from data I/O workloads. As a result, file system metadata services do not scale for sufficiently large systems in the same way that read and write throughput do~\cite{abad:techreport2012-fstrace, abad:ucc2012-mimesis, alam:pdsw2011-metadata-scaling, weil:osdi2006-ceph}. Furthermore, clients expect fast metadata access, making it difficult to apply data compressions and transformations~\cite{leung:atc2008-nfs-trace}. When developers scale file systems, the metadata service becomes the performance critical component. 
-
-% 1. This is an important/interesting problem
-Although this important metadata problem was once reserved for high-performance computing (HPC), it has recently found its way into large data centers. For example, Google has acknowledged a strain on their own metadata services because today's workloads often deal with many small files ({\it e.g.}, log processing) and a large amount of simultaneous clients ({\it e.g.}, MapReduce jobs)~\cite{mckusick:acm2010-gfs-evolution}. Metadata inefficiences have also plagued Facebook; they migrated away from file systems for photos~\cite{beaver:osdi2010-haystack} and aggressively concatenate and compress many small files so their Hive queries do not impose too many small files on the HDFS namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}. 
-
-%They noticed that file system metadata ({\it e.g.} permissions) are inappropriate for photos and that accessing these photos incurred costly disk seeks. 
-
-% Our specific solution
-To combat the speed and dynamic nature of these metadata workloads, the community has turned to metadata clusters instead of single metadata servers~\cite{patil:fast2011-giga+,weil:osdi2006-ceph,weil:sc2004-dyn-metadata,sinnamohideen:atc2010-ursa,xing:sc2009-skyfs}. A common technique for metadata clusters to improve metadata performance is load balancing across servers. These solutions are perfect for our study of resource migration because they are some of the only systems that migrate the resources themselves, in the form of directories and directory fragments. 
-
-%Maintaining a file system hierarchy and file attributes is notoriously difficult in high-performance computing (HPC), where checkpointing behavior induces ``flash crowds" of clients simultaneously opening, writing, and destroying files in the same vicinity  ({\it e.g.}, a directory). 
-
-\section{Research questions}
-We propose investigating automatic load distribution with the awareness that distribution depends on the workload. In this process, we will answer important load balancing questions such as ``how does the workload affect where/when I move resources" and ``how does the system's parameters affect when I move things". This project will address the following general load balancing topics:
-
-\subsection*{Which metrics do we use?}
-To properly balance load, we have to know which metrics are important and how they represent the state of the system. This requires understanding what metrics are available and how to collect them. The balancer also needs to know how the metrics are related to each other.
-
-\subsection*{How do we quantify performance?}
-After isolating the important metrics, the balancer needs to understand how the metrics affect the global performance and behavior. This requires understanding how over-utilized resources negatively affect performance and how system events can indicate that the system is performing optimally.
-
-\subsection*{What do we optimize?}
-Once we have the metrics and understand how they connect to performance, we will identify which metrics to optimize for in our load balancer. To do this, we must understand the trade-offs of optimizing each metric. Specifically, we must quantify how optimizing for one metric affects the other metrics in the system. This will involve solving a multi-objective optimization problem. 
-
-\subsection*{Which heuristics are successful?}
-Finally, when we know what to optimize for, we will apply different heuristics to resolve the optimization trade-offs. This will introduce problems that mirror other distributed systems problems, such as:
-\begin{itemize}
-	\item aggressive vs. hesitant migrations	
-	\item centralized vs. decentralized knowledge
-	\item small vs. large migration units
-	\item accurate vs. fast decision-making
-	\item learning vs. forgetting rate
-\end{itemize}
-
-% 3. in a position to solve the problem
-Our research contributions will bridge the gap between metadata management techniques and migration heuristics in related work (Section~\S\ref{related-work}). Section~\S\ref{background} motivates CephFS as a good platform for exploring resource migration and explains why we are in a unique position to solve the problem. Section~\S\ref{metrics} discusses the metrics the balancer uses to construct the system system and performance models. Section~\S\ref{heuristic} details how we model the system and the strategy the balancer uses to optimize different heuristics. Preliminary results in Section~\S\ref{results} showcase symptoms of poor load balancing and explain how CephFS makes decisions. Section~\S\ref{workload} shows how we can extend the model to include different workload patterns and signatures. Finally, Section~\S\ref{scalability} discusses the scalability problems the system might encounter and the predicted effects of deploying a large number of nodes. 
-
-%that the metadata management problem is sufficiently challenging~\ref{}, we show that the community is interested in metadata management~\ref{}, that we are are in a position to solve this problem~\ref{background},. 
-
-%To reduce the the design phase, work that models such systems~\cite{wang:mascots2009-mrperf} has the intention of letting the developer experiment with different workloads before deploying a system that is statically configured for their job.
-%Our contributions:
-%\begin{enumerate}
-%	\item we identify resource balancing challenges and present symptoms of poor load balancing 
-%	\item we reflect on tradeoffs that affect load balancing, techniques for resolving these trade-offs, and opportunities for dynamically tuning these trade-offs
-%	\item we motivate CephFS as a prototyping platform for migrating resources
-%\end{enumerate}
-
-
-
-% Solution:  systems balance their own loads
-%% All the information is already in the system and these bottlenecks have been seen before. 
-%It is understood that if a workload calls for more cores or memory, the solution is to provision the system with more cores and memory. But systems are so large and fast that statically provisioning resources and tuning parameters by hand is insufficient. Why do we a need a human to identify a bottleneck, diagnose the problem, and fix the problem? Why do we need a human to reconfigure and rebalance the system based on prior experiences? By letting the system balance its own load and resources, we can maximize scalability, performance, and efficiency. 
-
-
+In light of these trends, our solution is a concept called ``programmable
+storage"~\cite{sevilla:eurosys17-malacology, watkins:hot17-declstor}.
+Programmable storage facilitates the re-use and extension of existing storage
+abstractions provided by the underlying software stack, to enable the creation
+of new services via composition. This process is faster than reducing layers
+manually for new architectures with less layers~\cite{bent:login16-hpc-trends}
+that may break backwards compatibility.  We add interfaces {\it into} a storage
+system's internal functionality to facilitate application co-design, leading to
+more efficient implementations that inherit the robustness of the underlying
+system with less code duplication. My thesis uses the programmable storage
+approach to embed policy engines into the metadata substrates to control the
+behavior, performance, and transparency of the entire software stack.
 
