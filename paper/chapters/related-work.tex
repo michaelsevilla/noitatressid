@@ -1,4 +1,83 @@
 \chapter{Background and Related Work}
 \label{related-work}
 
+\section{Global Namespace Scalability}
 
+% what is a global namespace
+In general, namespaces resolve names to data. Traditionally, namespaces are
+hierarchical and flat namespaces are outside the scope of this work. Although
+file system are the most popular example, other instances include DNS, LAN
+network topologies, and scoping in programming languages.  File system
+namespaces are popular because they fit our mental model as humans and they are
+part of the POSIX IO standard. The momentum of namespaces as a mental model and
+the overwhelming amounts of legacy code written for namespaces makes this data
+model that will be around for a long time.
+
+% single node
+Whenever a file is created, modified, or deleted, the client must access the
+file's metadata. Single node file systems look in one location on disk for
+metadata. Using hte name of the file they index into a data structure that
+returns the inode number. Armed with that inode number, the client can seek to
+some location on disk for the data. Distributed file systems use the same idea
+but at a larger scale, with clusters, more data, and networking.
+
+% multi-node
+In distributed file systems, serving metadata and maintaining a file system
+namespace is sufficiently challenging because metadata requests result in
+small, frequent accesses to the underlying storage
+system~\cite{roselli:atec2000-FS-workloads}.  This skewed workload is very
+different from data I/O workloads. As a result, file system metadata services
+do not scale for sufficiently large systems in the same way that read and write
+throughput do~\cite{abad:techreport2012-fstrace, abad:ucc2012-mimesis,
+alam:pdsw2011-metadata-scaling, weil:osdi2006-ceph}. Furthermore, clients
+expect fast metadata access, making it difficult to apply data compressions and
+transformations~\cite{leung:atc2008-nfs-trace}. When developers scale file
+systems, the metadata service becomes the performance critical component. 
+
+% 1. This is an important/interesting problem
+Although this important metadata problem was once reserved for high-performance
+computing (HPC), it has recently found its way into large data centers. For
+example, Google has acknowledged a strain on their own metadata services
+because today's workloads often deal with many small files ({\it e.g.}, log
+processing) and a large amount of simultaneous clients ({\it e.g.}, MapReduce
+jobs)~\cite{mckusick:acm2010-gfs-evolution}. Metadata inefficiences have also
+plagued Facebook; they migrated away from file systems for
+photos~\cite{beaver:osdi2010-haystack} and aggressively concatenate and
+compress many small files so their Hive queries do not impose too many small
+files on the HDFS namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}. 
+
+%They noticed that file system metadata ({\it e.g.} permissions) are inappropriate for photos and that accessing these photos incurred costly disk seeks. 
+
+% Our specific solution
+To combat the speed and dynamic nature of these metadata workloads, the
+community has turned to metadata clusters instead of single metadata
+servers~\cite{patil:fast2011-giga+,weil:osdi2006-ceph,weil:sc2004-dyn-metadata,sinnamohideen:atc2010-ursa,xing:sc2009-skyfs}.
+A common technique for metadata clusters to improve metadata performance is
+load balancing across servers. These solutions are perfect for our study of
+resource migration because they are some of the only systems that migrate the
+resources themselves, in the form of directories and directory fragments. 
+
+%Maintaining a file system hierarchy and file attributes is notoriously difficult in high-performance computing (HPC), where checkpointing behavior induces ``flash crowds" of clients simultaneously opening, writing, and destroying files in the same vicinity  ({\it e.g.}, a directory). 
+
+
+
+% examples
+
+% why won't it scale
+
+\section{Approaches and Techniques}
+
+\subsection{Global Semantics: Strong consistency}
+\subsection{Leases}
+\subsection{Locks}
+\subsection{Capabilities}
+
+\subsection{Global Semantics: Durability}
+\subsection{Journal of updates}
+
+\subsection{Hierarchical Semantics: Ownership}
+\subsection{Path Traversals}
+
+\subsection{Workload Locality: Within Directories}
+\subsection{Workload Locality: Create Flash Crowds}
+\subsection{Workload Locality: Listing Directories}

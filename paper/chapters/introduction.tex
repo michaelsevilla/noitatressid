@@ -68,3 +68,46 @@ system with less code duplication. My thesis uses the programmable storage
 approach to embed policy engines into the metadata substrates to control the
 behavior, performance, and transparency of the entire software stack.
 
+\section{Research questions}
+
+We propose investigating automatic load distribution with the awareness that
+distribution depends on the workload. In this process, we will answer important
+load balancing questions such as ``how does the workload affect where/when I
+move resources" and ``how does the system's parameters affect when I move
+things". This project will address the following general load balancing topics:
+
+\subsection*{Which metrics do we use?}
+
+To properly balance load, we have to know which metrics are important and how
+they represent the state of the system. This requires understanding what
+metrics are available and how to collect them. The balancer also needs to know
+how the metrics are related to each other.
+
+\subsection*{How do we quantify performance?}
+
+After isolating the important metrics, the balancer needs to understand how the
+metrics affect the global performance and behavior. This requires understanding
+how over-utilized resources negatively affect performance and how system events
+can indicate that the system is performing optimally.
+
+\subsection*{What do we optimize?}
+
+Once we have the metrics and understand how they connect to performance, we
+will identify which metrics to optimize for in our load balancer. To do this,
+we must understand the trade-offs of optimizing each metric. Specifically, we
+must quantify how optimizing for one metric affects the other metrics in the
+system. This will involve solving a multi-objective optimization problem. 
+
+\subsection*{Which heuristics are successful?}
+
+Finally, when we know what to optimize for, we will apply different heuristics
+to resolve the optimization trade-offs. This will introduce problems that
+mirror other distributed systems problems, such as:
+
+\begin{itemize}
+	\item aggressive vs. hesitant migrations	
+	\item centralized vs. decentralized knowledge
+	\item small vs. large migration units
+	\item accurate vs. fast decision-making
+	\item learning vs. forgetting rate
+\end{itemize}
