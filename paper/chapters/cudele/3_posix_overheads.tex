@@ -60,18 +60,6 @@ consistency/durability guarantees.
   work.  \label{fig:overhead}}
 \end{figure*}
 
-% what is durability
-While durability is not specified by POSIX IO, users expect that files they
-create or modify survive failures.  We define three types of durability:
-global, local, and none.  Global durability means that the client or server can
-fail at any time and metadata will not be lost because it is ``safe" ({\it
-i.e.} striped or replicated across a cluster). Local durability means that
-metadata can be lost if the client or server stays down after a failure. None
-means that metadata is volatile and that the system provides no guarantees when
-clients or servers fail.  None is different than local durability because
-regardless of the type of failure, metadata will be lost when components die in a
-None configuration.
-
 % - sequential IO, trim redundant operations
 \textbf{CephFS Design}: A journal of metadata updates that streams into the
 resilient object store. Similar to LFS~\cite{rosenblum:acm1992-LFS} and
@@ -122,11 +110,6 @@ underlying distributed file system.
 
 \subsection{Strong Consistency}
 \label{sec:strong-consistency}
-
-Access to metadata in a POSIX IO-compliant file system is strongly consistent, so
-reads and writes to the same inode or directory are globally ordered.  The
-synchronization and serialization machinery needed to ensure that all clients
-see the same state has high overhead.
 
 \textbf{CephFS Design}: Capabilities keep metadata strongly
 consistent. To reduce the number of RPCs needed for consistency, clients can

@@ -68,13 +68,50 @@ system with less code duplication. My thesis uses the programmable storage
 approach to embed policy engines into the metadata substrates to control the
 behavior, performance, and transparency of the entire software stack.
 
+\section{Contributions}
+
+This thesis argues that the programmable storage approach is the correct model
+for scaling global namespaces and designing policies effective file system
+metadata management policies. We design policies for three metadata management
+techniques.
+
+First, we present Mantle, a programmable file system metadata load balancer.
+To help decouple policy from mechanism, we introduce a programmable storage
+system that lets the designer inject custom balancing logic. We show the
+flexibility and transparency of this approach by replicating the strategy of a
+state-of-the-art metadata balancer and conclude by comparing this strategy to
+other custom balancers on the same system. We also show how the data management
+language and policy engine from Mantle turns out to be an effective control
+plane for managing ZLog sequencers and ParSplice caches.  
+
+Second, we present Cudele, an API and framework for programmable consistency
+and durability in a global namespace. The system lets clients specify their
+consistency/durability requirements and dynamically assign them to subtrees in
+the same namespace, allowing users to optimize subtrees over time and space for
+different workloads. We confirm the performance benefits of techniques
+presented in related work but also explore new consistency/durability metadata
+designs, all integrated over the same storage system. By custom fitting a
+subtree to a create- heavy application, we show 8× speedup and can scale to
+2\(\times\) as many clients when compared to our baseline system.
+
+Third, we present Tintenfisch, a programmable file system that generates
+namespaces automatically. Clients and servers are injected with a function that
+describes the size and structure of a subtree and metadata is lazily populated.
+This reduces the number RPCs as clients/servers need not exchange messages to
+maintain consistency.
+
+These contributions have mostly been prototyped on Ceph. Mantle was merged into
+Ceph and funded by the Center for Research in Open Source Software and Los
+Alamos National Laboratory. Malacology and Mantle were featured in the Next
+Platform magazine and the 2017 Lua Workshop. Finally, Malacology and Cudele are
+the first Popper-compliant conference papers.
+
 \section{Research questions}
 
-We propose investigating automatic load distribution with the awareness that
-distribution depends on the workload. In this process, we will answer important
-load balancing questions such as ``how does the workload affect where/when I
-move resources" and ``how does the system's parameters affect when I move
-things". This project will address the following general load balancing topics:
+Programmable storage attempts to answer answer important data management
+questions such as ``how does the workload affect where/when I move resources"
+and ``how does the system's parameters affect when I move things". This project
+will address the following general load balancing topics:
 
 \subsection*{Which metrics do we use?}
 

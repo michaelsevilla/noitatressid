@@ -67,12 +67,34 @@ resources themselves, in the form of directories and directory fragments.
 
 \section{Approaches and Techniques}
 
+For clarity, we describe how CephFS implements the properties of a global
+namespace. Each chapter has its own related work section, which paints a
+landscape of other state-of-the-art research papers.
+
 \subsection{Global Semantics: Strong consistency}
+
+Access to metadata in a POSIX IO-compliant file system is strongly consistent, so
+reads and writes to the same inode or directory are globally ordered.  The
+synchronization and serialization machinery needed to ensure that all clients
+see the same state has high overhead.
+
 \subsection{Leases}
 \subsection{Locks}
 \subsection{Capabilities}
 
 \subsection{Global Semantics: Durability}
+
+While durability is not specified by POSIX IO, users expect that files they
+create or modify survive failures.  We define three types of durability:
+global, local, and none.  Global durability means that the client or server can
+fail at any time and metadata will not be lost because it is ``safe" ({\it
+i.e.} striped or replicated across a cluster). Local durability means that
+metadata can be lost if the client or server stays down after a failure. None
+means that metadata is volatile and that the system provides no guarantees when
+clients or servers fail.  None is different than local durability because
+regardless of the type of failure, metadata will be lost when components die in a
+None configuration.
+
 \subsection{Journal of updates}
 
 \subsection{Hierarchical Semantics: Ownership}
