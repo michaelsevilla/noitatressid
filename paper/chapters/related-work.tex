@@ -9,17 +9,38 @@ hierarchical and flat namespaces are outside the scope of this work. Although
 file system are the most popular example, other instances include DNS, LAN
 network topologies, and scoping in programming languages.  File system
 namespaces are popular because they fit our mental model as humans and they are
-part of the POSIX IO standard. The momentum of namespaces as a mental model and
+part of the POSIX IO standard. The momentum of namespaces as an abstraction and
 the overwhelming amounts of legacy code written for namespaces makes this data
-model that will be around for a long time.
+model will be relatively future proof.
 
-% single node
+% single node file metadata
 Whenever a file is created, modified, or deleted, the client must access the
-file's metadata. Single node file systems look in one location on disk for
-metadata. Using hte name of the file they index into a data structure that
-returns the inode number. Armed with that inode number, the client can seek to
-some location on disk for the data. Distributed file systems use the same idea
-but at a larger scale, with clusters, more data, and networking.
+file's metadata. File system metadata usually contains information about the
+file, like size, attributes, ACL permissions, links, access timestamps, and
+ownership.  Single node file systems look in one location on disk for metadata.
+Using the name of the file they index into a data structure that returns the
+inode number. Armed with that inode number, the client can seek to some
+location on disk for the data. Distributed file systems use the same idea but
+at a larger scale, with clusters, more data, and networking.
+
+% distributed file metadata
+In addition to this information about files, metadata in distributed file
+systems also have system-specific information about accessing the file.
+Per-client capabilities for a file gives clients opportunities to optimize
+performance.  For example, CephFS clients are granted capabilities for reading,
+reading and updating, caching reads, writing, buffering writes, extending the
+end of a file, and doing lazy IO~\cite{docs:cephcaps}; GPFS allows byte range
+locking for writing different parts of a file~\cite{schmuck:fast2002-gpfs};
+meanwhile, GFS does not let clients cache or buffer data because their
+applications typically stream~\cite{ghemawat:sosp2003-gfs}. Another
+system-specific piece of metadata common in distributed file systems is data
+location or layout information, such as striping
+strategies~\cite{nagle_panasas_2004, welch:fast08-panasas, wang:tech09-lustre,
+docs:cephstripe, sinnamohideen:atc2010-ursa, ghemawat:sosp2003-gfs}. This lets
+clients contact the storage servers for data IO after doing only one RPC to
+retrieve the data layout.  Other systems have similar capabilities but are not
+enumerated here because these optimizations are for data IO. Instead we focus
+on similar optimizations for serving the metadata itself.
 
 % multi-node
 In distributed file systems, serving metadata and maintaining a file system
@@ -29,7 +50,7 @@ system~\cite{roselli:atec2000-FS-workloads}.  This skewed workload is very
 different from data I/O workloads. As a result, file system metadata services
 do not scale for sufficiently large systems in the same way that read and write
 throughput do~\cite{abad:techreport2012-fstrace, abad:ucc2012-mimesis,
-alam:pdsw2011-metadata-scaling, weil:osdi2006-ceph}. Furthermore, clients
+alam:pdsw2011-metadata-scaling, weil:osdi2006-ceph}.  Furthermore, clients
 expect fast metadata access, making it difficult to apply data compressions and
 transformations~\cite{leung:atc2008-nfs-trace}. When developers scale file
 systems, the metadata service becomes the performance critical component. 
@@ -46,41 +67,110 @@ photos~\cite{beaver:osdi2010-haystack} and aggressively concatenate and
 compress many small files so their Hive queries do not impose too many small
 files on the HDFS namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}. 
 
-%They noticed that file system metadata ({\it e.g.} permissions) are inappropriate for photos and that accessing these photos incurred costly disk seeks. 
-
 % Our specific solution
 To combat the speed and dynamic nature of these metadata workloads, the
 community has turned to metadata clusters instead of single metadata
-servers~\cite{patil:fast2011-giga+,weil:osdi2006-ceph,weil:sc2004-dyn-metadata,sinnamohideen:atc2010-ursa,xing:sc2009-skyfs}.
-A common technique for metadata clusters to improve metadata performance is
-load balancing across servers. These solutions are perfect for our study of
-resource migration because they are some of the only systems that migrate the
-resources themselves, in the form of directories and directory fragments. 
-
-%Maintaining a file system hierarchy and file attributes is notoriously difficult in high-performance computing (HPC), where checkpointing behavior induces ``flash crowds" of clients simultaneously opening, writing, and destroying files in the same vicinity  ({\it e.g.}, a directory). 
-
-
-
-% examples
+servers~\cite{patil:fast2011-giga+,weil:osdi2006-ceph,weil:sc2004-dyn-metadata,
+sinnamohideen:atc2010-ursa, xing:sc2009-skyfs}.  A common technique for
+metadata clusters to improve metadata performance is load balancing across
+servers. These solutions are perfect for our study of resource migration
+because they are some of the only systems that migrate the resources
+themselves, in the form of directories and directory fragments. 
 
 % why won't it scale
 
 \section{Approaches and Techniques}
 
-For clarity, we describe how CephFS implements the properties of a global
-namespace. Each chapter has its own related work section, which paints a
-landscape of other state-of-the-art research papers.
-
 \subsection{Global Semantics: Strong consistency}
 
-Access to metadata in a POSIX IO-compliant file system is strongly consistent, so
-reads and writes to the same inode or directory are globally ordered.  The
+% what is it
+Access to metadata in a POSIX IO-compliant file system is strongly consistent,
+so reads and writes to the same inode or directory are globally ordered.  The
+benefit of strong consistency is that clients and servers have the same view of
+the data, which makes decisions is easier to understand and state changes
+easier to reason about.  The cost of this ``safety" is performance.  The
 synchronization and serialization machinery needed to ensure that all clients
-see the same state has high overhead.
+see the same state has high overhead.  To make sure that all nodes or processes
+in the system are seeing the same state, they must come to an agreement.  This
+limits parallelization and metadata performance has been shown to {\it
+decrease} with more sockets in
+Lustre~\cite{konstantinos:pdsw2014-lustre-metadata}. As a result, and because
+it is simpler to implement, many distributed file systems limits the number of
+threads in one metadata server~\cite{weil:osdi2006-ceph,
+alam:pdsw2011-metadata-scaling, ren:sc2014-indexfs}. 
 
-\subsection{Leases}
-\subsection{Locks}
-\subsection{Capabilities}
+% heavy weight agreement
+Coming to agreement has its own set of performance and accuracy trade-offs.
+Sophisticated, standalone consensus engines like
+PAXOS~\cite{lamport_parttime_1998}, Zookeeper~\cite{hunt_zookeeper_2010}, or
+Chubby~\cite{burrows_chubby_2006} are common techniques for maintaining
+consistent versions of state in groups of processes that may disagree, but
+putting them in the data path is a large bottleneck. In fact, PAXOS is used in
+Ceph and Zookeeper in Apache stacks to maintain cluster state not for doing IO.
+Distributed file systems do not use this technique because of the overhead, but
+also because the server is the authority over the client.
+
+\subsubsection{Techniques: Leases, Locks, Capabilities}
+
+Many distributed file systems use state machines to guard access to file system metadata.
+These state machines enforce the level of isolation that clients are guaranteed
+while they are reading or writing files.  
+
+GPFS shared write locks for updating
+metadata
+
+Panasas lets clients read, cache, and
+parse directories and batch similar operations together, like create and
+stat~\cite{welch:fast08-panasas}; 
+
+Lustre has concurrent modes and locks for
+protecting inodes, extents, and file locks~\cite{wang:tech09-lustre}; 
+
+\subsubsection{Optimization: Lock Management}
+
+The global view of these state machines are read and modified with RPCs from
+clients. For performance, the state machines can be modified locally by clients
+if they have the proper authority.  (GPFS uses locks and
+tokens~\cite{schmuck:fast2002-gpfs}, Lustre uses locks and modes with a
+distributed lock manager~\cite{wang:tech09-lustre}, HDFS grants leases for
+exclusive access~\cite{depardon:tech13-survey}, and Panasas refers to exclusive
+access in terms of callbacks~\cite{nagle_panasas_2004}, PVFS2 parallelizes
+metadata IO by allowing servers to just be metadata servers or storing data on OSDs, HDFS
+
+GFS uses an primary with a 60 second timeout
+
+\subsubsection{Optimization: Cache Inodes}
+
+Many distributed file systems cache inodes between clients and servers. This
+reduces the number of RPCs that need to agree on the state of metadata.
+For example, CephFS caches entire inodes, Lustre caches lookups, IndexFS caches
+ACLs, PVFS2 maintains a namespace cache and an attribute cache, and GPFS and
+Panasas cache the results of \texttt{stat()}~\cite{docs:cephcaps,
+schmuck:fast2002-gpfs, wang:tech09-lustre, depardon:tech13-survey}. Ursa Minor caches for NFS
+
+GFS caches inodes not data, which also contain file location/stripint strategy
+
+%PVFS2
+%http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5679607
+
+\subsubsection{Optimizations: Metadata Layout}
+% Panasas stores metadata on NVRAM replicated on backup
+% - uses WAFL/LFS without the cleaner
+% - stores different kidn of metadata (system vs. user, read vs. write) in diff places
+
+\subsubsection{Optimizations: Relaxing Consistency}
+
+% Alternative approaches: even
+ concepts such as eventual
+consistency~\cite{amazon} and more fine-grained consistency
+models~\cite{baseball} evolved because of the high overhead of maintaining
+strong consistency.
+
+Lustre can enable/disable boxcarring.
+PVFS2 batching for creates (PVFS2-2)
+
+GFS would rather leave the state of a file undefined rather than consistent,
+forcing apps to use append rather than seek writes
 
 \subsection{Global Semantics: Durability}
 
@@ -95,11 +185,22 @@ clients or servers fail.  None is different than local durability because
 regardless of the type of failure, metadata will be lost when components die in a
 None configuration.
 
+GFS replicates its operation log from the master local disk to remote nodes
+
+% Panasas uses a journal
+% - mirrors directories on RAID1
+% - in-memory logging to battery, log rep to remote peer, metadata on objs (panasas08)
+
 \subsection{Journal of updates}
 
-\subsection{Hierarchical Semantics: Ownership}
+\subsection{Hierarchical Semantics: Ownership (ACLs), Locking}
 \subsection{Path Traversals}
 
 \subsection{Workload Locality: Within Directories}
 \subsection{Workload Locality: Create Flash Crowds}
+%Maintaining a file system hierarchy and file attributes is notoriously
+%difficult in high-performance computing (HPC), where checkpointing behavior
+%induces ``flash crowds" of clients simultaneously opening, writing, and
+%destroying files in the same vicinity  ({\it e.g.}, a directory). 
+
 \subsection{Workload Locality: Listing Directories}
