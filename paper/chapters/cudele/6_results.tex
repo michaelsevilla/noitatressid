@@ -165,17 +165,8 @@ journal files.\label{fig:use-cases}}
 First we show how we can build application-specific subtrees by composing
 mechanisms and that this approach results in more a scalable global namespace.
 We start with clients creating files in private directories because this
-workload is heavily studied in HPC~\cite{weil:sc2004-dyn-metadata,
-ren:sc2014-indexfs, patil:fast2011-giga, zheng:pdsw2014-batchfs,
-sevilla:sc15-mantle}, mostly due to checkpoint-restart~\cite{bent_plfs_2009}.
-But the workload also appears in cloud workloads~\cite{xiao:socc15-shardfs},
-where systems like Hadoop use the file abstraction to exchange work units to
-workers or to indicate when jobs
-complete~\cite{shvachko:login2012-hdfs-scalability}. A more familiar example is
-uncompressing an archive ({\it e.g.}, \texttt{tar xzf}), where the file system
-services a flash crowd of creates across all directories as shown in
-Figure~\ref{fig:overhead-creates}.  The workload is clients creating 100K files
-in private directories in the same global namespace.
+workload is heavily studied in HPC and appears in other contexts~\ref{RELATED
+WORK}.
 
 %\begin{figure}[tb]
 %\centering
@@ -349,18 +340,8 @@ controlling consistency.
 \subsection{Use Case 3: Read while Writing}
 
 The final use case shows how the API gives users fine-grained control of the
-consistency semantics.  The use case is that users often leverage the file
-system to check the progress of jobs using \texttt{ls} even though this
-operation is notoriously heavy-weight~\cite{carns:ipdps09-pvfs,
-eshel:fast10-panache} . The number of files or size of the files is indicative
-of the progress. This practice is not too different from systems that use the
-file system to manage the progress of jobs; Hadoop writes to temporary files,
-renames them when complete, and creates a ``DONE" file to indicate to the
-runtime that the task did not fail and should not be re-scheduled on another
-node. In this scenario, Cudele users will not see the progress of decoupled
-namespaces since their updates are not globally visible.  To help users
-judge the progress of their jobs, Cudele clients have a ``namespace sync" that
-sends batches of updates back to the global namespace at regular intervals.
+consistency semantics. The use case is recursively listing files or
+directories, motivated by~\ref{RELATED WOKR}.
 
 % Does this implementation need to be described in the implementation?
 Figure~\ref{fig:slowdown-sync} shows the performance degradation of a single
