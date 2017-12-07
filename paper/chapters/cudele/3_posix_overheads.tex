@@ -62,15 +62,11 @@ consistency/durability guarantees.
 
 % - sequential IO, trim redundant operations
 \textbf{CephFS Design}: A journal of metadata updates that streams into the
-resilient object store. Similar to LFS~\cite{rosenblum:acm1992-LFS} and
-WAFL~\cite{hitz:wtec1994-WAFL} the metadata journal is designed to be large
-(on the order of MBs) which ensures (1) sequential writes into the object store
-and (2) the ability for daemons to trim redundant or irrelevant journal
-entries.  The journal is striped over objects where multiple journal updates
-can reside on the same object. There are two tunables for controlling the
-journal: the segment size and the number of segments that can be written in
-parallel. Unless the journal saturates memory or CPU resources, larger values
-for these tunables results in better performance.
+resilient object store.  The journal is striped over objects where multiple
+journal updates can reside on the same object. There are two tunables for
+controlling the journal: the segment size and the number of segments that can
+be written in parallel. Unless the journal saturates memory or CPU resources,
+larger values for these tunables results in better performance.
 
 % purpose of the journal
 In addition to the metadata journal, CephFS also represents metadata in RADOS

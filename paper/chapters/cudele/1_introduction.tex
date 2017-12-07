@@ -1,35 +1,6 @@
 \chapter{Cudele for Programmable File System Consistency and Durability}
 \section{Introduction}
 
-% What is the problem?
-File system metadata services in HPC and large-scale data centers have
-scalability problems because common tasks, like
-checkpointing~\cite{bent_plfs_2009} or scanning the file
-system~\cite{zheng:pdsw2014-batchfs}, contend for the same directories and
-inodes. Applications perform better with dedicated metadata
-servers~\cite{sevilla:sc15-mantle, ren:sc2014-indexfs} but provisioning a
-metadata server for every client is unreasonable. This problem is exacerbated
-by current hardware and software trends; for example, HPC architectures are
-transitioning from complex storage stacks with burst buffer, file system,
-object store, and tape tiers to more simplified stacks with just a burst buffer
-and object store~\cite{bent:login16-hpc-trends}. These types of trends put
-pressure on data access because more requests end up hitting the same layer and
-latencies cannot be hidden while data migrates across tiers.
-
-% What is HPC doing?
-To address this, developers are relaxing the consistency and durability
-semantics in the file system because weaker guarantees are sufficient for their
-applications. For example, many batch style jobs do not need the strong
-consistency that the file system provides, so
-BatchFS~\cite{zheng:pdsw2014-batchfs} and DeltaFS~\cite{zheng:pdsw2015-deltafs}
-do more client-side processing and merge updates when the job is done.
-Developers in these domains are turning to these non-POSIX IO solutions because
-their applications are well-understood ({\it e.g.}, well-defined read/write
-phases, synchronization only needed during certain phases, workflows describing
-computation, etc.) and because these applications wreak havoc on file systems
-designed for general-purpose workloads ({\it e.g.}, checkpoint-restart's N:N
-and N:1 create patterns~\cite{bent_plfs_2009}).
-
 \begin{figure}[tb] \centering
 \includegraphics[width=0.35\textwidth]{./chapters/cudele/figures/subtree-policies1.png}
 \caption{Illustration of subtrees with different semantics co-existing in a
@@ -37,23 +8,6 @@ global namespace.  For performance, clients can relax consistency on their
 subtree (HDFS) or decouple the subtree and move it locally (BatchFS, RAMDisk).
 Decoupled subtrees can relax durability for even better performance.
 }\label{fig:subtree-policies} \end{figure}
-
-% One example
-One popular approach for relaxing consistency and durability is to ``decouple
-the namespace", where clients lock the subtree they want exclusive access to as
-a way to tell the file system that the subtree is important or may cause
-resource contention in the near-future~\cite{grider:pdsw2015-marfs,
-zheng:pdsw2015-deltafs, zheng:pdsw2014-batchfs, ren:sc2014-indexfs,
-bent:slides-twotiers}. Then the file system can change its internal structure
-to optimize performance. For example, the file system could enter a mode that
-prevents other clients from interfering with the decoupled directory.  This
-delayed merge ({\it i.e.} a form of eventual consistency) and relaxed
-durability improves performance and scalability by avoiding the costs of remote
-procedure calls (RPCs), synchronization, false sharing, and serialization.
-While the performance benefits of decoupling the namespace are obvious,
-applications that rely on the file system's guarantees must be deployed on an
-entirely different system or re-written to coordinate strong
-consistency/durability themselves.
 
 % What did we do
 To address this problem, we present an API and framework that lets developers
