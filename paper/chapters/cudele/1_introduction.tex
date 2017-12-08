@@ -1,5 +1,5 @@
-\chapter{Cudele for Programmable File System Consistency and Durability}
-\section{Introduction}
+\chapter{Cudele: Subtree Consistency \& Durability Semantics}
+\label{chp:cudele}
 
 \begin{figure}[tb] \centering
 \includegraphics[width=0.35\textwidth]{./chapters/cudele/figures/subtree-policies1.png}
@@ -10,16 +10,16 @@ Decoupled subtrees can relax durability for even better performance.
 }\label{fig:subtree-policies} \end{figure}
 
 % What did we do
-To address this problem, we present an API and framework that lets developers
-dynamically control the consistency and durability guarantees for subtrees in
-the file system namespace.  Figure~\ref{fig:subtree-policies} shows a potential
-setup in our proposed system where a single global namespace has subtrees for
-applications optimized with techniques from different state-of-the-art
-architectures.  The HDFS\footnote{HDFS itself is not directly evaluated in this
-paper, although the semantics and their performance is explored
-in~\S\ref{sec:use-case-1}.} subtree has weaker than strong consistency because
-it lets clients read files opened for
-writing~\cite{hakimzadeh:dais14-hdfs-consistency}, which means that not all
+To address the scalability limits of namespace with global semantics, we
+present an API and framework that lets developers dynamically control the
+consistency and durability guarantees for subtrees in the file system
+namespace.  Figure~\ref{fig:subtree-policies} shows a potential setup in our
+proposed system where a single global namespace has subtrees for applications
+optimized with techniques from different state-of-the-art architectures.  The
+HDFS\footnote{HDFS itself is not directly evaluated in this paper, although the
+semantics and their performance is explored in~\S\ref{sec:use-case-1}.} subtree
+has weaker than strong consistency because it lets clients read files opened
+for writing~\cite{hakimzadeh:dais14-hdfs-consistency}, which means that not all
 updates are immediately seen by all clients; the BatchFS and RAMDisk subtrees
 are decoupled from the global namespace and have similar consistency/durability
 behavior to those systems; and the POSIX IO subtree retains the rigidity of

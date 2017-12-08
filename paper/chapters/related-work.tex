@@ -59,8 +59,11 @@ serving the metadata itself.
 To combat the speed and dynamic nature of these metadata workloads, the
 community has turned to metadata clusters instead of single metadata
 servers~\cite{patil:fast2011-giga+,weil:osdi2006-ceph,weil:sc2004-dyn-metadata,
-sinnamohideen:atc2010-ursa, xing:sc2009-skyfs}.  
- Applications perform better with dedicated metadata
+sinnamohideen:atc2010-ursa, xing:sc2009-skyfs}.  Many distributed file systems
+decouple metadata from data access so that data and metadata I/O can scale
+independently~\cite{alam:pdsw2011-metadata-scaling, ghemawat:sosp2003-gfs,
+hildebrand:msst2005-pnfs,weil:osdi2006-ceph,welch:fast2008-panasas,xing:sc2009-skyfs}.
+Applications perform better with dedicated metadata
 servers~\cite{sevilla:sc15-mantle, ren:sc2014-indexfs} but provisioning a
 metadata server for every client is unreasonable. This problem is exacerbated
 by current hardware and software trends; for example, HPC architectures are
@@ -69,6 +72,23 @@ object store, and tape tiers to more simplified stacks with just a burst buffer
 and object store~\cite{bent:login16-hpc-trends}. These types of trends put
 pressure on data access because more requests end up hitting the same layer and
 latencies cannot be hidden while data migrates across tiers.
+
+% Why you should care: metadata management as a resurgence
+Unfortunately, decoupling metadata and data is insufficient for scaling and
+many setups require customized application solutions for dealing with metadata
+intensive workloads. For example, Google has acknowledged a strain on their own
+metadata services because their workloads involve many small files ({\it e.g.},
+log processing) and simultaneous clients ({\it e.g.}, MapReduce
+jobs)~\cite{mckusick:acm2010-gfs-evolution}. Metadata inefficiencies have also
+plagued Facebook; they migrated away from file systems for
+photos~\cite{beaver:osdi2010-haystack} and aggressively concatenate and
+compress small files so that their Hive queries do not overload the HDFS
+namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}. The elegance and
+simplicity of the solutions stem from a thorough understanding of the workloads
+({\it e.g.}, temperature zones at Facebook~\cite{muralidhar:osdi2014-f4}) and
+are not applicable for general purpose storage systems. 
+
+
 
 % 1. This is an important/interesting problem
 Although this important metadata problem was once reserved for high-performance
@@ -91,10 +111,8 @@ system~\cite{roselli:atec2000-FS-workloads}. As a result of this skewed
 workload, serving metadata requests does not scale for sufficiently large
 systems in the same way that read and write throughput
 do~\cite{abad:ucc2012-mimesis, alam:pdsw2011-metadata-scaling,
-weil:osdi2006-ceph}. Many distributed file systems decouple metadata from data
-access so that data and metadata I/O can scale
-independently~\cite{alam:pdsw2011-metadata-scaling, ghemawat:sosp2003-gfs,
-hildebrand:msst2005-pnfs,weil:osdi2006-ceph,welch:fast2008-panasas,xing:sc2009-skyfs}.
+weil:osdi2006-ceph}. 
+
 Despite this optimization file system metadata services in HPC and large-scale
 data centers still have scalability problems because common tasks, like
 checkpointing~\cite{bent_plfs_2009} or scanning the file

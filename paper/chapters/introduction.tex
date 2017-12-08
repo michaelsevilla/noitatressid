@@ -64,16 +64,19 @@ manually for new architectures with less layers~\cite{bent:login16-hpc-trends}
 that may break backwards compatibility.  We add interfaces {\it into} a storage
 system's internal functionality to facilitate application co-design, leading to
 more efficient implementations that inherit the robustness of the underlying
-system with less code duplication. My thesis uses the programmable storage
-approach to embed policy engines into the metadata substrates to control the
-behavior, performance, and transparency of the entire software stack.
+system with less code duplication. This thesis uses the programmable storage
+approach to embed policy engines into file system metadata substrates to
+control the behavior, performance, and transparency of the entire software
+stack.
 
 \section{Contributions}
 
 This thesis argues that the programmable storage approach is the correct model
 for scaling global namespaces and designing policies effective file system
 metadata management policies. We design policies for three metadata management
-techniques.
+techniques: subtree load balancing, subtree semantics, and implied subtrees.
+The first two expand on a strong foundation of related work while the third is
+a novel idea.
 
 First, we present Mantle, a programmable file system metadata load balancer.
 To help decouple policy from mechanism, we introduce a programmable storage
