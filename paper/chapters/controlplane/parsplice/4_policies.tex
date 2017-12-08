@@ -69,7 +69,8 @@ the cache degrades performance and predictability.
 
 
 \begin{figure}[t]
-\noindent\includegraphics[width=0.5\textwidth]{./chapters/controlplane/parsplice/figures/methodology-tradeoff.png}\\
+\centering
+\includegraphics[width=0.7\textwidth]{./chapters/controlplane/parsplice/figures/methodology-tradeoff.png}\\
 \caption{Policy performance/utilization shows the trade-offs of different sized
 caches (\(x\) axis).  ``None" is ParSplice unmodified, ``Fixed Sized Cache"
 evicts keys using LRU, and ``Multi-Policy Cache" switches to fixed sized cache
@@ -81,7 +82,7 @@ only works for this system setup and initial configurations.
 
 \begin{figure}[t]
         \centering
-        \includegraphics[width=0.5\textwidth]{./chapters/controlplane/parsplice/figures/memory-vs-time.png}\\
+        \includegraphics[width=0.8\textwidth]{./chapters/controlplane/parsplice/figures/memory-vs-time.png}\\
 	\caption{Memory utilization for ``No Cache Management" (unlimited cache
 growth), ``Multi-Policy" (absorbs initial burstiness of workload), and
 ``Dynamic Policy" (sizes cache according to key access patterns). The dynamic
@@ -187,6 +188,7 @@ policy. With negligible performance degradation, DSCache adjusts to different in
 
 \begin{figure}[tb]
 \footnotesize
+\ssp
 \begin{minted}[xleftmargin=3em,linenos]{lua}
 d = timeseries()
 ts, id = d:get(d:size())
@@ -214,6 +216,7 @@ else
   return true
 end
 \end{minted}
+\dsp
 \caption{The dynamically sized cache policy iterates backwards over
 timestamp-key pairs and detects when accesses move on to a new subset of keys
 ({\it i.e.} ``fans"). The performance and total memory usage is in

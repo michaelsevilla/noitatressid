@@ -23,7 +23,8 @@ Mantle builds on the implementations and data structures in the CephFS balancer,
 %%%%%%%%%%%%%%%%%%%%
 \begin{table}[tb]
 	\centering
-	\begin{tabular}{ >{}p{3.1cm} | >{}p{5.1cm}}
+	\ssp
+	\begin{tabular}{ >{}p{4cm} | >{}p{10cm}}
     	\centering Current MDS metrics
 		& \centering Description
 		\tabularnewline\hline	
@@ -87,6 +88,7 @@ Mantle builds on the implementations and data structures in the CephFS balancer,
         \small\texttt{max(a,b),min(a,b)}
         & get the max, min of two numbers
 	\end{tabular}
+	\dsp
 	\caption{The Mantle environment.\label{table:metrics}}    
 \end{table}
 Mantle decouples policy from mechanism by letting the designer inject code to control 4 policies: load calculation, ``when" to move load, ``where" to send load, and the accuracy of the decisions. Mantle balancers are written in Lua because Lua is fast (the LuaJIT virtual machine achieves near native performance) and it runs well as modules in other languages~\cite{grawinkel:pdsw2012-lua}. The balancing policies are injected at run time with Ceph's command line tool, {\it e.g.,} \texttt{\small ceph tell mds.0 injectargs mds\_bal\_metaload IWR}. This command means ``tell MDS 0 to calculate load on a dirfrag by the number of inode writes".

@@ -41,7 +41,8 @@ These modification points are shown by the colored boxes in
 Figure~\ref{fig:mantle} and described below.
 
 \begin{figure}[t]
-  \noindent\includegraphics[width=0.5\textwidth]{./chapters/controlplane/parsplice/figures/mantle.png}\\
+  \centering
+  \includegraphics[width=0.8\textwidth]{./chapters/controlplane/parsplice/figures/mantle.png}\\
 
   \caption{Extracting Mantle as library.\label{fig:mantle}}
 
@@ -49,6 +50,7 @@ Figure~\ref{fig:mantle} and described below.
 
 \begin{table}
   \centering
+  \ssp
   \begin{tabular}{ r | l | l }
   Metrics     & Data Structure & Description \\\hline
   Cluster     & \{server \(\rightarrow\) \{metric \(\rightarrow\) val\}\}
@@ -62,6 +64,7 @@ Figure~\ref{fig:mantle} and described below.
   Time Series & File Systems & Accesses to directory \\
               & ParSplice    & Accesses to key in DB\\
   \end{tabular}
+  \dsp
   \caption{Types of metrics exposed by the storage system to the policy engine using Mantle.\label{table:metrics}}
 \end{table}
 

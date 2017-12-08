@@ -21,15 +21,15 @@ Performance numbers are specific to CephFS but our contribution is the balancing
 \label{greedy-spill-balancer}
 %%%%%%%%%%
 % /user/msevilla/results/sc/spill-evenly
-\begin{figure}[tb]
+\begin{figure}[tbh]
 	\centering	
 	%\includegraphics[width=0.4\textwidth]{./figures/eval_spill-evenly.pdf}
-   	\includegraphics[width=0.4\textwidth]{./chapters/mantle/figures/spill-evenly.pdf}
+   	\includegraphics[width=0.7\textwidth]{./chapters/mantle/figures/spill-evenly.pdf}
 	\caption{With clients creating files in the same directory, spilling load unevenly with Fill \& Spill has the highest throughput (curves are not stacked), which can have up to 9\% speedup over 1 MDS. Greedy Spill sheds half its metadata immediately while Fill \& Spill sheds part of its metadata when overloaded.\label{figure:eval_spill-evenly}}
 \end{figure}
-\begin{figure}[tb]
+\begin{figure}[tbh]
 	\centering	
-	\includegraphics[width=0.4\textwidth]{./chapters/mantle/figures/eval_spill-evenly_bar}
+	\includegraphics[width=0.7\textwidth]{./chapters/mantle/figures/eval_spill-evenly_bar}
 	\caption{The per-client speedup or slowdown shows whether distributing metadata is worthwhile.  Spilling load to 3 or 4 MDS nodes degrades performance but spilling to 2 MDS nodes improves performance.\label{figure:eval_spill-evenly_bar}}
 \end{figure}
 
@@ -37,6 +37,7 @@ Performance numbers are specific to CephFS but our contribution is the balancing
 This balancer, shown in Listing~\ref{listing:greedy-spill}, aggressively sheds load to all MDS nodes and works well for many clients creating files in the same directory. This balancing strategy mimics the uniform hashing strategy of GIGA+~\cite{patil:fast2011-giga+, ren:sc2014-indexfs}. In these experiments, we use 4 clients each creating 100,000 files in the same directory. When the directory reaches 50,000 directory entries, it is fragmented (the first iteration fragments into \(2^{3}\) = 8 dirfrags) and the balancer migrates half of its dirfrags to an ``underutilized" neighbor. 
 
 \begin{listing}
+	\ssp
 	\begin{minted}[frame=lines]{lua}
 -- Metadata load
 metaload = IWR
@@ -50,6 +51,7 @@ targets[whoami+1]=allmetaload/2
 -- Howmuch policy
 {"half"}
 	\end{minted}
+	\dsp
     \caption{Greedy Spill Balancer using the Mantle environment (listed in Table~\ref{table:metrics}). Note that all subsequent balancers use the same metadata and MDS loads.\label{listing:greedy-spill}}
 \end{listing}
 
@@ -59,6 +61,7 @@ The metadata load for the subtrees/dirfrags in the namespace is calculated using
 % describe results 
 The first graph in Figure~\ref{figure:eval_spill-evenly} shows the instantaneous throughput ({\it y} axis) of this balancer over time ({\it x} axis). The MDS nodes spill half their load as soon as they can - this splits load evenly for 2 MDS nodes, but with 4 MDS nodes the load splits unevenly because each MDS spills less load than its predecessor MDS. To get the even balancing shown in the second graph of Figure~\ref{figure:eval_spill-evenly}, the balancer is modified according to Listing~\ref{listing:greedy-spill-evenly} to partition the cluster when selecting the target MDS.
 \begin{listing}
+	\ssp
 	\begin{minted}[frame=lines]{lua}
 -- When policy
 t=((#MDSs-whoami+1)/2)+whoami
@@ -69,6 +72,7 @@ if MDSs[whoami]["load"]>.01 and
 -- Where policy
 targets[t]=MDSs[whoami]["load"]/2
 	\end{minted}
+	\dsp
     \caption{Greedy Spill Evenly Balancer.\label{listing:greedy-spill-evenly}}
 \end{listing}
 
@@ -92,6 +96,7 @@ The difference in performance is dependent on the number of flushes to client se
 This balancer, shown in Listing~\ref{listing:fill-and-spill}, encourages MDS nodes to offload inodes {\it only} when overloaded.  Ideally, the first MDS handles as many clients as possible before shedding load, increasing locality and reducing the number of forwarded requests. Figuring out when an MDS is overloaded is a crucial policy for this balancer. In our implementation, we use the MDS's instantaneous CPU utilization as our load metric, although we envision a more sophisticated metric built from a statistical model for future work. To figure out a good threshold, we look at the CPU utilization from the scaling experiment in Section~\S\ref{setting-policies-for-migration-decisions}. We use the CPU utilization when the MDS has 3 clients, about 48\%, since 5, 6, and 7 clients appear to overload the MDS.  
 
 \begin{listing}
+	\ssp
 	\begin{minted}[frame=lines]{lua}
 -- When policy
 wait=RDState(); go = 0;
@@ -103,6 +108,7 @@ if go==1 then
 -- Where policy
 targets[whoami+1] = MDSs[whoami]["load"]/4
 	\end{minted}
+	\dsp
     \caption{Fill and Spill Balancer.\label{listing:fill-and-spill}}
 \end{listing}
 % injectable code
@@ -118,18 +124,19 @@ This balancer has a speedup of 6\% over 1 MDS, as shown in Figure~\ref{figure:ev
 \subsection{Adaptable Balancer}						%%%%%%%%%%
 \label{adaptable-balancer}								%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure}[t]
+\begin{figure}[tbh]
 	\centering	
-	\includegraphics[width=0.5\textwidth]{./chapters/mantle/figures/eval_spill-evenly_compile_bar}\caption{For the compile workload, 3 clients do not overload the MDS nodes so distribution is only a penalty. The speedup for distributing metadata with 5 clients suggests that an MDS with 3 clients is slightly overloaded.  \label{figure:eval_spill-evenly_compile_bar}}
+	\includegraphics[width=0.7\textwidth]{./chapters/mantle/figures/eval_spill-evenly_compile_bar}\caption{For the compile workload, 3 clients do not overload the MDS nodes so distribution is only a penalty. The speedup for distributing metadata with 5 clients suggests that an MDS with 3 clients is slightly overloaded.  \label{figure:eval_spill-evenly_compile_bar}}
 \end{figure}
-\begin{figure}[tb]
+\begin{figure}[tbh]
 	\centering	
-	\includegraphics[width=0.45\textwidth]{./chapters/mantle/figures/eval_spill-evenly_compile}\caption{With 5 clients compiling code in separate directories, distributing metadata load early helps the cluster handle a flash crowd at the end of the job. Throughput (stacked curves) drops when using 1 MDS (red curve) because the clients shift to linking, which overloads 1 MDS with \texttt{readdir}s.\label{figure:eval_spill-evenly_compile}}
+	\includegraphics[width=0.7\textwidth]{./chapters/mantle/figures/eval_spill-evenly_compile}\caption{With 5 clients compiling code in separate directories, distributing metadata load early helps the cluster handle a flash crowd at the end of the job. Throughput (stacked curves) drops when using 1 MDS (red curve) because the clients shift to linking, which overloads 1 MDS with \texttt{readdir}s.\label{figure:eval_spill-evenly_compile}}
 \end{figure}
 
 This balancer, shown in Listing~\ref{listing:adaptable}, migrates load frequently to try and alleviate hotspots. It works well for dynamic workloads, like compiling code, because it can adapt to the spatial and temporal locality of the requests. The adaptable balancer uses a simplified version of the adaptable load sharing technique of the original balancer.
 
 \begin{listing}
+	\ssp
 	\begin{minted}[frame=lines]{lua}
 -- Metadata load
 metaload = IWR + IRD
@@ -150,6 +157,7 @@ end
 -- Howmuch policy
 {"half","small","big","big_small"}
 	\end{minted}
+	\dsp
     \caption{Adaptable Balancer.\label{listing:adaptable}}
 \end{listing}
 

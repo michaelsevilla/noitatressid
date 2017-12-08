@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[tb]
 	\centering	
-	\includegraphics[width=0.4\textwidth]{./chapters/mantle/figures/balancer-diagram.pdf}
+	\includegraphics[width=0.7\textwidth]{./chapters/mantle/figures/balancer-diagram.pdf}
  	\caption{The MDS cluster journals to RADOS and exposes a namespace to clients. Each MDS makes decisions by exchanging heartbeats and partitioning the cluster/namespace. Mantle adds code hooks for custom balancing logic.\label{figure:balancer-diagram}}    
 \end{figure}   
 
@@ -80,7 +80,8 @@ Figure~\ref{figure:creates-thruput} shows how a 10 node, 3 MDS CephFS system str
 
 % /user/msevilla/results/multimds/3mds-3client-sepdir/graphs/images/create-throughput_run5.pdf
 \begin{figure}[tb]
-	\includegraphics[width=0.45\textwidth]{./chapters/mantle/figures/creates-thruput-runs2.pdf}
+	\centering
+	\includegraphics[width=0.7\textwidth]{./chapters/mantle/figures/creates-thruput-runs2.pdf}
 	\caption{The same create-intensive workload has different throughput ({\it y} axis; curves are stacked) because of how CephFS maintains state and sets policies.\label{figure:creates-thruput}}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%
@@ -102,7 +103,8 @@ Even if maintaining state was instant and consistent, making the correct migrati
 %%%%%%%%%%%%%%%%%%%%
 \begin{table}[tb]
 	\centering
-	\begin{tabular}{ >{}p{1.5cm} | >{}p{6.8cm}}
+	\ssp
+	\begin{tabular}{ >{}p{3cm} | >{}p{10cm}}
 		\centering\textbf{Policy} & \centering\textbf{Hard-coded implementation}
 		\tabularnewline\hline		
 		metaload	 	& \small{\texttt{= inode reads + 2*(inode writes)}}\tabularnewline
@@ -121,6 +123,7 @@ Even if maintaining state was instant and consistent, making the correct migrati
         accuracy		& \small{\texttt{~~while load already sent < target load}} \tabularnewline
         				& \small{\texttt{~~~~export largest dirfrag}}\tabularnewline
 	\end{tabular}	
+	\dsp
    	\caption{In the CephFS balancer, the policies are tied to mechanisms: loads quantify the work on a subtree/MDS; when/where policies decide when/where to migrate by assigning target loads to MDS nodes; how-much accuracy is the strategy for sending dirfrags to reach a target load.\label{table:policies}}    
 \end{table}	
 
@@ -137,7 +140,7 @@ The other approach for setting policies is to hard-code the policies into the sy
 % /user/msevilla/results/1mds/sepdir/graphs/images/create-latency-throughput.pdf
 \begin{figure}[tb]
 	\centering
-	\includegraphics[width=0.45\textwidth]{./chapters/mantle/figures/creates-latency-thruput-clients.pdf}
+	\includegraphics[width=0.75\textwidth]{./chapters/mantle/figures/creates-latency-thruput-clients.pdf}
     \caption{For the create heavy workload, the throughput ({\it x} axis) stops improving and the latency ({\it y} axis) continues to increase with 5, 6, or 7 clients. The standard deviation also increases for latency (up to 3\(\times\)) and throughput (up to 2.3\(\times\)). \label{figure:creates-latency-thruput-clients}} 
 \end{figure}
 

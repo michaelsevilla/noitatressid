@@ -3,9 +3,10 @@
 
 \begin{figure*}[t!]
     \centering
+    \ssp
     \begin{subfigure}[t]{0.48\textwidth}
         \centering
-        \footnotesize
+        \tiny
         \centering
         \begin{minted}[xleftmargin=3em,linenos]{lua}
 function when()
@@ -28,7 +29,7 @@ end
     ~ 
     \begin{subfigure}[t]{0.48\textwidth}
         \centering
-        \footnotesize
+        \tiny
         \begin{minted}[xleftmargin=3em,linenos]{lua}
 local function when()
   if servers[whoami]["load"] > target then
@@ -47,6 +48,7 @@ end
         in~\cite{sevilla:sc15-mantle}. This policy has many similarities to the
         ParSplice cache management policy.\label{src:lua-cephfs}}
     \end{subfigure}
+    \dsp
     \caption{ParSplice's cache management policy has the same components as
     CephFS's load balancing policy.}
 \end{figure*}
@@ -103,7 +105,8 @@ they design can be re-used in different code bases.
 \subsubsection{Using Cache Management Policies for Load Balancing}
 
 \begin{figure}[t]
-\noindent\includegraphics[width=0.5\textwidth]{./chapters/controlplane/parsplice/figures/trace-atime.png}\\
+\centering
+\includegraphics[width=0.9\textwidth]{./chapters/controlplane/parsplice/figures/trace-atime.png}\\
 \caption{File system metadata reads for a Lustre trace collected at LANL. The
 vertical lines are the access patterns detected by the ParSplice cache
 management policy from Section~\S\ref{sec:dom-specific}. A file system that

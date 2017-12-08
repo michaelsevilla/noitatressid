@@ -11,6 +11,8 @@ Section~\S\ref{sec:the-cudelesfs-mechanisms}.}\label{fig:decouple}
 \end{figure}
 
 \begin{table}
+\centering
+\ssp
 \begin{tabular}{ r | l }
   Mechanism         & Description \\\hline
   RPCs              & round trip remote procedure calls \\
@@ -21,6 +23,7 @@ Section~\S\ref{sec:the-cudelesfs-mechanisms}.}\label{fig:decouple}
   Local Persist     & journal saved to client's disk \\
   Global Persist    & journal saved in object store \\
 \end{tabular}
+\dsp
 \caption{Descriptions of the mechanisms. Example compositions are shown in Table~\ref{table:spectrum}.\label{table:mechanisms}} 
 \end{table}
 
@@ -104,6 +107,7 @@ links into the client.
 \label{sec:setting-policies-with-cudele}
 
 \begin{table}[t]
+\ssp
 \begin{center}
 \begin{tabular}{ l | l | l | l }
   C \(\rightarrow\) &&& \\  
@@ -117,7 +121,7 @@ links into the client.
                              & +global persist   & +global persist & +stream \\
                              &                   & +volatile apply &         \\
 \end{tabular}
-
+\dsp
 \caption{Users can explore the consistency (C) and
 durability (D) spectrum by composing Cudele mechanisms. 
 \label{table:spectrum}}
