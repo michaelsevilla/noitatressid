@@ -1,52 +1,5 @@
-\section{Evaluation}
+\section{Domain 1: Evaluation}
 \label{sec:evaluation} 
-
-%We wanted to implement CORFU and we had two choices: build it from the ground
-%up or do it on top of Malacology. To show the feasability of building on
-%Malacology our evaluation focuses on the 
-
-Our evaluation demonstrates the feasibility of building new service
-abstractions atop programmable storage, focusing on the performance of the
-internal abstractions exposed by Malacology and used to construct the Mantle
-and ZLog services. We also discuss latent capabilities we discovered in this
-process that let us navigate different trade-offs within the services
-themselves. First, we benchmark scenarios with high sequencer contention by
-examining the interfaces used to map ZLog onto Malacology; specifically, we
-describe the sequencer implementation and the propagation of object and data
-interfaces interfaces.  Next, we benchmark scenarios in which the storage
-system manages multiple logs by using Mantle to balance sequencers across a
-cluster.
-
-% should save this for future work, otherwise it undercuts the eval.
-%Detailed system-wide performance measurements and analysis is forthcoming for
-%both Mantle and ZLog, as we try to find the best metadata balancing policies
-%and physical design implementation trade-offs.  
-
-Since this work focuses on the programmability of Malacology, the goal of this
-section is to show that the components and subsystems that support the
-Malacology interfaces provide reasonable relative performance, as well as to
-give examples of the flexibility that Malacology provides to programmers.  
-This section uses a principled approach for evaluating tunables of the
-interfaces and the trade-offs we discuss should be acknowledged when building
-higher-level services.
-
-%As we search for the best metadata balancing policies and physical design
-%implementation trade-offs, we plan to rel
-
-\subsection{Load Balancing ZLog Sequencers with Mantle}
-\label{sec:zlog-balancing}
-
-In practice, a storage system implementing CORFU will support a multiplicity of
-independent totally-ordered logs for each application.  For this scenario
-co-locating sequencers on the same physical node is not ideal but building a
-load balancer that can migrate the shared resource (e.g., the resource
-that mediates access to the tail of the log) is a time-consuming, non-trivial
-task.  It requires building subsystems for migrating resources, monitoring the
-workloads, collecting metrics that describe the utilization on the physical
-nodes, partitioning resources, maintaining cache coherence, and managing
-multiple sequencers. The following experiments demonstrate the feasibility of
-using the mechanisms of the Malacology Load Balancing interface to inherit
-these features and to alleviate load from overloaded servers.
 
 \begin{figure}[t!]
 \centering
@@ -102,7 +55,7 @@ Section~\ref{sec:feature-backoff} examines the slope and start time of the
 re-balancing phase between 0 and 60 seconds by comparing the aggressiveness of
 the balancers.
 
-\subsubsection{Feature: Balancing Modes}
+\subsection{Feature: Balancing Modes}
 \label{sec:feature-balancing-modes}
 
 Next, we quantify the performance benefits shown in
@@ -189,7 +142,7 @@ less throughput than Sequencer 1. In this case, the scatter-gather process used
 for cache coherence in the metadata protocols causes strain on the server
 housing Sequencer 2 resulting in this uneven performance. 
 
-\subsubsection{Feature: Migration Units}
+\subsection{Feature: Migration Units}
 \label{sec:feature-migration-units}
 
 Another factor that affects performance in this environment is how much load is
@@ -233,7 +186,7 @@ sequencer co-location or distribution across the cluster. This trade-off was
 explored extensively in the Mantle paper but the experiments we present here
 are indicative of an even richer set of states to explore.
 
-\subsubsection{Feature: Backoff}
+\subsection{Feature: Backoff}
 \label{sec:feature-backoff}
 
 Tuning the aggressiveness of the load balancer decision making is also a

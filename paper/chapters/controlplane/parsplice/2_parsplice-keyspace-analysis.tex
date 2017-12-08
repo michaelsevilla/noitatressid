@@ -1,4 +1,4 @@
-\section{ParSplice Keyspace Analysis}
+\subsection{ParSplice Keyspace Analysis}
 \label{sec:parsplice-keyspace-analysis}
 
 \begin{figure}[t]
@@ -16,7 +16,7 @@ ParSplice~\cite{perez:jctc20150parsplice} is an accelerated molecular dynamics
 Project\footnote{http://www.exascale.org/bdec/} and is important to LANL's
 Materials for the Future initiative. 
 
-\subsection{Background}
+\subsubsection{Background}
 
 As shown in Figure~\ref{fig:parsplice}, the phases are:
 
@@ -60,7 +60,7 @@ simulations because trajectories have so much energy that they are equally
 likely to visit any random state. 
 
 %IT HAS 8K keys!  How did we take these measurements
-\subsection{Experimental Setup}
+\subsubsection{Experimental Setup}
 
 We instrumented ParSplice with performance counters and keyspace counters.  The
 performance counters track ParSplice progress while keyspace counters track
@@ -80,7 +80,7 @@ analysis that follows is for the cache on the worker node, which is circled in
 Figure~\ref{fig:parsplice}.  
 
 
-\subsection{Results and Observations}
+\subsubsection{Results and Observations}
 \label{sec:parsplice-keyspace-analysis}
 
 \begin{figure}[t]
@@ -95,7 +95,7 @@ Our analysis shows that ParSplice accesses keys in a structured and predictable
 way. The following 4 observations shape the policies we design later in the
 paper.
 
-\subsubsection{\underline{Scalability}} Figure~\ref{fig:methodology-keyspace} shows the
+\textbf{\underline{Scalability}} Figure~\ref{fig:methodology-keyspace} shows the
 keyspace size (text annotations) and request load (bars) after a one hour run
 with a different number of tasks (\(x\) axis). While the keyspace size and
 capacity is modest the memory usage scales linearly with the number
@@ -106,7 +106,7 @@ Trinitite nodes at 8GB for one cache.  This memory utilization easily eclipses
 the 3\% memory usage per node threshold we set earlier, even without factoring
 in the usage from other workers.
 
-\subsubsection{\underline{An active but small keyspace}}
+\textbf{\underline{An active but small keyspace}}
 
 The bars in Figure~\ref{fig:methodology-keyspace} show \(50-100\times\) as many
 reads (\texttt{get()}) as writes (\texttt{put()}).  Tasks read the same key for
@@ -126,7 +126,7 @@ second sliding window (\(y2\) axis). Despite having different growth rates
 \label{fig:motivation-regimes}}
 \end{figure}
 
-\subsubsection{\underline{Initial conditions influence key activity}}
+\textbf{\underline{Initial conditions influence key activity}}
 Figure~\ref{fig:motivation-regimes} shows how ParSplice tasks read key-value
 pairs from the worker's cache for two different initial conditions of
 \(\Delta\), which is the rate that new atoms enter the simulation.  The line is
@@ -158,7 +158,7 @@ runs.  ({\it e.g.}, some keys are still read 5 times as many times others).
 \label{fig:methodology-keys}}
 \end{figure}
 
-\subsubsection{\underline{Entropy increases over time}} The reads per second in
+\textbf{\underline{Entropy increases over time}} The reads per second in
 Figure~\ref{fig:motivation-regimes} show that the number of requests decreases
 and the number of active keys increases over time.  The number of read and
 write requests are highest at the beginning of the run when tasks generate

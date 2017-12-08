@@ -1,2 +1,29 @@
 \section{Domain 1: Load Balancing for ZLog}
 \label{sec:zlog}
+
+%As we search for the best metadata balancing policies and physical design
+%implementation trade-offs, we plan to rel
+In practice, a storage system implementing CORFU will support a multiplicity of
+independent totally-ordered logs for each application.  For this scenario
+co-locating sequencers on the same physical node is not ideal but building a
+load balancer that can migrate the shared resource (e.g., the resource
+that mediates access to the tail of the log) is a time-consuming, non-trivial
+task.  It requires building subsystems for migrating resources, monitoring the
+workloads, collecting metrics that describe the utilization on the physical
+nodes, partitioning resources, maintaining cache coherence, and managing
+multiple sequencers. The following experiments demonstrate the feasibility of
+using the mechanisms of the Malacology Load Balancing interface to inherit
+these features and to alleviate load from overloaded servers.
+
+We also discuss latent capabilities we discovered in this process that let us
+navigate different trade-offs within the services themselves.  We benchmark
+scenarios in which the storage system manages multiple logs by using Mantle to
+balance sequencers across a cluster.  Since this work focuses on Mantle atop
+Malacology the goal of this section is to show that the components and
+subsystems that support the Malacology interfaces provide reasonable relative
+performance, as well as to give examples of the flexibility that Malacology
+provides to programmers.  This section uses a principled approach for
+evaluating tunables of the interfaces and the trade-offs we discuss should be
+acknowledged when building higher-level services.
+
+

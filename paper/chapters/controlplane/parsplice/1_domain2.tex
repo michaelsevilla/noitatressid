@@ -81,16 +81,9 @@ without any performance degradation, works for a variety of initial conditions,
 and could generalize to similar applications.
 
 % What is Mantle
-
 In this paper we are presenting the successful use of our data management
 language and Mantle policy engine to control the behavior of ParSplice's
-caches. Mantle provides a control plane that injects policies into a running
-storage system, such as a file system or key-value store. While Mantle was
-originally designed for file system metadata load
-balancing~\cite{sevilla:sc15-mantle}, we find that it works surprisingly well
-for specifying cache management policies without requiring users to possess
-extensive knowledge about the internals of storage systems. We show that our
-framework:
+caches. We show that our framework:
 
 \begin{itemize}
 
@@ -117,7 +110,12 @@ disciplines; but more importantly, in Section~\S\ref{sec:scope}, we conclude
 that the collection of policies we design for cache management in ParSplice are
 very similar to the policies used to load balance metadata in the Ceph file
 system (CephFS~\cite{weil:osdi2006-ceph}) suggesting that there is potential
-for automatically adapting and generating policies dynamically.  
+for automatically adapting and generating policies dynamically.  In this work
+we focus on a single node, so the ``where" policy is not used. When we move
+ParSplice to a distributed key-value store back-end, the ``where" policy will
+be used to determine which key-value pairs should be moved to which node.
+
+
 
 %Manageable: abstracts away complexities of the system (pass around to others,
 %use different strategies) 
