@@ -3,6 +3,8 @@
 rm -r _minted-paper paper.aux paper.bbl paper.blg paper.log paper.out paper.synctex.gz build.log \
       appendix.aux paper.lof paper.lot paper.pdf paper.toc >> /dev/null 2>&1
 for f in `find . -type f | grep .aux`; do rm $f; done
+docker stop latex >> /dev/null 2>&1
+docker rm latex >> /dev/null 2>&1
 
 cp biblio/references.bib paper.bib
 
