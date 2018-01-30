@@ -3,11 +3,11 @@
 
 % what is a global namespace
 Namespaces resolve names to data. Traditionally, namespaces are hierarchical
-and allow users to group similar data together; flat namespaces are outside the
-scope of this work. Although file systems are the most popular example, other
+and allow users to group similar data together\footnote{flat namespaces are outside the
+scope of this work}. Although file system namespaces are the most popular example, other
 instances include DNS, LAN network topologies, and scoping in programming
-languages.  File system namespaces are popular because they fit our mental
-organization as humans and part of the POSIX IO standard. The momentum of
+languages.  File system namespaces are popular because they (1) fit our mental
+organization as humans and (2) are part of the POSIX IO standard. The momentum of
 namespaces as an abstraction and the overwhelming amounts of legacy code
 written for namespaces makes the data model relatively future proof.
 
@@ -25,20 +25,12 @@ Similarly, many distributed file systems decouple metadata from data access so
 that data and metadata I/O can scale
 independently~\cite{alam:pdsw2011-metadata-scaling, ghemawat:sosp2003-gfs,
 hildebrand:msst2005-pnfs, weil:osdi2006-ceph, welch:fast2008-panasas,
-xing:sc2009-skyfs}.  Unfortunately, decoupling metadata and data is
-insufficient for scaling and many setups require customized application
-solutions for dealing with metadata intensive workloads. For example, Google
-has acknowledged a strain on their own metadata services because their
-workloads involve many small files ({\it e.g.}, log processing) and
-simultaneous clients ({\it e.g.}, MapReduce
-jobs)~\cite{mckusick:acm2010-gfs-evolution}. Metadata inefficiencies have also
-plagued Facebook; they migrated away from file systems for
-photos~\cite{beaver:osdi2010-haystack} and aggressively concatenate and
-compress small files so that their Hive queries do not overload the HDFS
-namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}. The elegance and
-simplicity of the solutions stem from a thorough understanding of the workloads
-({\it e.g.}, temperature zones at Facebook~\cite{muralidhar:osdi2014-f4}) and
-are not applicable for general purpose storage systems. 
+xing:sc2009-skyfs}.  In this setup, the metadata service becomes the
+performance critical component.  Recent trends have shown shown that decoupling
+metadata and data is insufficient for scaling and many setups require
+customized application solutions for dealing with metadata intensive workloads.
+namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}. 
+
 
 %% general optimization
 %An accepted optimization for distributed file systems is to maintain
@@ -59,10 +51,6 @@ are not applicable for general purpose storage systems.
 %optimizations are for data IO.  Instead we focus on similar optimizations for
 %serving the metadata itself.
 
-When developers scale file systems, the metadata service becomes the
-performance critical component. The following sections present four reasons
-that global namespaces fail to scale. Each section gives background on the
-problem and brief view of related work. 
 
 \section{Metadata Workloads}
 % What is the metadata management problem?
@@ -89,7 +77,11 @@ jobs)~\cite{mckusick:acm2010-gfs-evolution}. Metadata inefficiences have also
 plagued Facebook; they migrated away from file systems for
 photos~\cite{beaver:osdi2010-haystack} and aggressively concatenate and
 compress many small files so their Hive queries do not impose too many small
-files on the HDFS namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}. 
+files on the HDFS namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}.
+The elegance and simplicity of the solutions stem from a thorough understanding
+of the workloads ({\it e.g.}, temperature zones at
+Facebook~\cite{muralidhar:osdi2014-f4}) and are not applicable for general
+purpose storage systems. 
 
 % reaction
 Developers in these domains are turning to the optimizations discussed later in
