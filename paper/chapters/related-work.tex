@@ -1,167 +1,189 @@
-\chapter{Background: Global Namespace Scalability}
+\chapter{Background: Namespace Scalability}
 \label{related-work}
 
 % what is a global namespace
 Namespaces resolve names to data. Traditionally, namespaces are hierarchical
-and allow users to group similar data together\footnote{flat namespaces are outside the
-scope of this work}. Although file system namespaces are the most popular example, other
-instances include DNS, LAN network topologies, and scoping in programming
-languages.  File system namespaces are popular because they (1) fit our mental
-organization as humans and (2) are part of the POSIX IO standard. The momentum of
-namespaces as an abstraction and the overwhelming amounts of legacy code
-written for namespaces makes the data model relatively future proof.
+and allow users to group similar data together. Although file system namespaces
+are the most popular example, other instances include DNS, LAN network
+topologies, and scoping in programming languages.  File system namespaces are
+popular because they fit our mental organization as humans and are part of the
+POSIX IO standard. The momentum of namespaces as an abstraction and the
+overwhelming amount of legacy code written for namespaces makes the data model
+relatively future proof.
 
-% single node file metadata
-Whenever a file is created, modified, or deleted, the client must access the
-file's metadata. File system metadata usually contains information about the
-file, like size, links, access times, attributes, permissions/access control
-lists (ACLs), and ownership.  Single disk POSIX IO file systems consult
-metadata before seeking to the data.  First they translate the file name into
-an inode. Then they use that inode to lookup metadata in an inode table, which
-is at some fixed location on disk.  
-
-% multi-node: why you should care: metadata management as a resurgence
-Similarly, many distributed file systems decouple metadata from data access so
+% file metadata
+In file system namespaces, whenever a file is created, modified, or deleted,
+the client must access the file's metadata. File system metadata contains
+information about the file, like size, links, access times, attributes,
+permissions/access control lists (ACLs), and ownership.  In single disk POSIX
+IO file systems, clients consult metadata before seeking to data. Clients
+translate the file name to an inode and use that inode to lookup metadata in an
+inode table located at a fixed location on disk.  Distributed file systems use
+a similar idea; clients look in one spot for their metadata, usually a metadata
+service, and use that information to find data in a storage cluster.
+State-of-the-art distributed file systems decouple metadata from data access so
 that data and metadata I/O can scale
 independently~\cite{alam:pdsw2011-metadata-scaling, ghemawat:sosp2003-gfs,
 hildebrand:msst2005-pnfs, weil:osdi2006-ceph, welch:fast2008-panasas,
-xing:sc2009-skyfs}.  In this setup, the metadata service becomes the
-performance critical component.  Recent trends have shown shown that decoupling
-metadata and data is insufficient for scaling and many setups require
-customized application solutions for dealing with metadata intensive workloads.
-namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}. 
+xing:sc2009-skyfs}.  Unfortunately, recent trends have shown that separating
+metadata and data traffic is insufficient for scaling to large systems and
+studies have shown that the metadata service is still the performance critical
+component. 
 
+First, we discuss general file system use cases and characterize the resultant
+metadata workloads. Next, we describe three semantics that users expect from
+file systems: strong consistency, durability, and a hierarchical organization.
+For each semantic, we explain why it is problematic for today's metadata
+workloads and survey optimizations in related work.
 
-%% general optimization
-%An accepted optimization for distributed file systems is to maintain
-%system-specific information about accessing files.  Per-client capabilities for
-%a file gives clients opportunities to optimize performance.  For example,
-%CephFS clients are granted capabilities for reading, reading and updating,
-%caching reads, writing, buffering writes, extending the end of a file, and
-%doing lazy IO~\cite{docs:cephcaps}; GPFS allows byte range locking for writing
-%different parts of a file~\cite{schmuck:fast2002-gpfs}; meanwhile, GFS does not
-%let clients cache or buffer data because their applications typically
-%stream~\cite{ghemawat:sosp2003-gfs}. Another system-specific piece of metadata
-%common in distributed file systems is data location or layout information, such
-%as striping strategies~\cite{nagle_panasas_2004, welch:fast08-panasas,
-%wang:tech09-lustre, docs:cephstripe, sinnamohideen:atc2010-ursa,
-%ghemawat:sosp2003-gfs}. This lets clients contact the storage servers for data
-%IO after doing only one RPC to retrieve the map of data locations.  Other
-%systems have similar capabilities but are not enumerated here because these
-%optimizations are for data IO.  Instead we focus on similar optimizations for
-%serving the metadata itself.
-
+%% general optimization An accepted optimization for distributed file systems
+%is to maintain system-specific information about accessing files.  Per-client
+%capabilities for a file gives clients opportunities to optimize performance.
+%For example, CephFS clients are granted capabilities for reading, reading and
+%updating, caching reads, writing, buffering writes, extending the end of a
+%file, and doing lazy IO~\cite{docs:cephcaps}; GPFS allows byte range locking
+%for writing different parts of a file~\cite{schmuck:fast2002-gpfs}; meanwhile,
+%GFS does not let clients cache or buffer data because their applications
+%typically stream~\cite{ghemawat:sosp2003-gfs}. Another system-specific piece
+%of metadata common in distributed file systems is data location or layout
+%information, such as striping strategies~\cite{nagle_panasas_2004,
+%welch:fast08-panasas, wang:tech09-lustre, docs:cephstripe,
+%sinnamohideen:atc2010-ursa, ghemawat:sosp2003-gfs}. This lets clients contact
+%the storage servers for data IO after doing only one RPC to retrieve the map
+%of data locations.  Other systems have similar capabilities but are not
+%enumerated here because these optimizations are for data IO.  Instead we focus
+%on similar optimizations for serving the metadata itself.
 
 \section{Metadata Workloads}
+
 % What is the metadata management problem?
-Serving metadata and maintaining a POSIX namespace is challenging for
-large-scale distributed file systems because accessing metadata imposes small
-and frequent requests on the underlying storage
-system~\cite{roselli:atec2000-FS-workloads}. As a result of this skewed
-workload, serving metadata requests does not scale for sufficiently large
-systems in the same way that read and write throughput
-do~\cite{abad:ucc2012-mimesis, alam:pdsw2011-metadata-scaling,
-weil:osdi2006-ceph}.  Despite this optimization file system metadata services
-in HPC and large-scale data centers still have scalability problems because
-common tasks, like checkpointing~\cite{bent_plfs_2009} or scanning the file
-system~\cite{zheng:pdsw2014-batchfs}, contend for the same directories and
-inodes.
+File system metadata is small and highly accessed resulting in workloads with
+many small requests~\cite{roselli:atec2000-FS-workloads, abad:ucc2012-mimesis}.
+This skewed workload causes scalability issues in file systems because
+solutions for scaling data IO do not work for metadata
+IO~\cite{roselli:atec2000-FS-workloads, abad:techreport2012-fstrace,
+alam:pdsw2011-metadata-scaling, weil:osdi2006-ceph}.  Unfortunately, this
+metadata problem is becoming more common. The bottlenecks associated with
+accessing POSIX file system metadata are not limited to HPC workloads and the
+same challenges that plagued these systems for years are finding their way into
+the cloud. Workloads that deal with many small files ({\it e.g.}, log
+processing and database
+queries~\cite{thusoo:sigmod2010-facebook-infrastructure}) and large numbers of
+simultaneous clients ({\it e.g.}, MapReduce
+jobs~\cite{mckusick:acm2010-gfs-evolution}), are subject to the scalability of
+the metadata service. 
 
-% 1. This is an important/interesting problem
-Although this important metadata problem was once reserved for high-performance
-computing (HPC), it has recently found its way into large data centers. For
-example, Google has acknowledged a strain on their own metadata services
-because today's workloads often deal with many small files ({\it e.g.}, log
-processing) and a large amount of simultaneous clients ({\it e.g.}, MapReduce
-jobs)~\cite{mckusick:acm2010-gfs-evolution}. Metadata inefficiences have also
-plagued Facebook; they migrated away from file systems for
-photos~\cite{beaver:osdi2010-haystack} and aggressively concatenate and
-compress many small files so their Hive queries do not impose too many small
-files on the HDFS namenode~\cite{thusoo:sigmod2010-facebook-infrastructure}.
-The elegance and simplicity of the solutions stem from a thorough understanding
-of the workloads ({\it e.g.}, temperature zones at
-Facebook~\cite{muralidhar:osdi2014-f4}) and are not applicable for general
-purpose storage systems. 
+If the use case is narrow enough, then developers in these domains can build
+application-specific storage stacks based on a thorough understanding of the
+workloads ({\it e.g.}, temperature zones for
+photos~\cite{muralidhar:osdi2014-f4}, well-defined read/write
+phases~\cite{dean:osdi2004-mapreduce, dean_evolution_2010}, synchronization
+only needed during certain phases~\cite{hakimzadeh:dais14-hdfs-consistency,
+zheng:pdsw2015-deltafs}, workflows describing computation~\cite{yoo_slurm_2003,
+gamblin_spack_2015}, etc.). Unfortunately, this ``clean-slate" approach only
+works for one type of workload. To build a general-purpose file system, we need
+a thorough understanding of today's workloads and how they affect metadata
+services.  
 
-% reaction
-Developers in these domains are turning to the optimizations discussed later in
-this section because their applications are well-understood ({\it e.g.},
-well-defined read/write phases, synchronization only needed during certain
-phases, workflows describing computation, etc.) and because these applications
-wreak havoc on file systems designed for general-purpose workloads ({\it e.g.},
-checkpoint-restart's N:N and N:1 create patterns~\cite{bent_plfs_2009}).
+In this section, we describe modern applications (standalone programs,
+compilers, and runtimes) and common user behaviors ({\it e.g.}, how users
+interact with file systems) that result in metadata-intensive workloads.  For
+each use case, we provide motivation from HPC and cloud workloads;
+specifically, we look at users using the file system in parallel to run
+large-scale experiments in HPC and parallel runtimes that use the file system,
+such as Hadoop and Spark. 
 
 % Locality is a big part of workloads
-\textbf{Spatial Locality Within Directories}: File system workloads have
-locality because the namespace has semantic meaning; data stored in directories
-is related and is usually accessed together.  Figure~\ref{figure:workload-tar}
-shows the metadata locality when compiling the Linux source code. The ``heat"
-of each directory is calculated with per-directory metadata counters, which are
-tempered with an exponential decay.  The hotspots can be correlated with phases
-of the job: untarring the code has high, sequential metadata load across
-directories and compiling the code has hotspots in the \texttt{arch},
-\texttt{kernel}, \texttt{fs}, and \texttt{mm} directories. Exploiting this
-locality has positive implications for performance because it reduces the
-number of requests, lowers the communication across MDS nodes, and eases memory
-pressure. The Ceph~\cite{weil:osdi2006-ceph} (see also www.ceph.com) file
-system (CephFS) tries to leverage this spatial, temporal, and request-type
-locality in metadata intensive workloads using dynamic subtree partitioning,
-but struggles to find the best degree of locality and balance.
+\subsection{Spatial Locality Within Directories}
+\label{sec:spatial-locality-within-directories}
 
-% specific example
-Locality, like accessing many files in the same directory with a ls -l, is
-destroyed many MDSs because traversing the file hierarchy for each file is
-slow. Despite the obvious path traversal benefits, LH fails to adapt to the
-locality in a workload. It can rebalance when servers are added and removed,
-but the request behavior does not dictate where and when metadata migrates.
+File system namespaces have semantic meaning; data stored in directories is
+related and is usually accessed together~\cite{weil:osdi2006-ceph,
+weil:sc2004-dyn-metadata}.  Programs, compilers, and runtimes are usually
+triggered by users so the inputs/outputs to the job are stored within the
+user's home directory~\cite{weil:phdthesis07}.  User behavior also exhibits
+locality. Listing directories after jobs is common and accesses are localized
+to the user's working directory~\cite{roselli:atec2000-FS-workloads,
+abad:ucc2012-mimesis}.
 
-\textbf{Temporal Locality During Create Flash Crowds}: Creates in the same
-directory is problem in HPC~\cite{weil:sc2004-dyn-metadata, ren:sc2014-indexfs,
-patil:fast2011-giga, zheng:pdsw2014-batchfs, sevilla:sc15-mantle}, mostly due
-to checkpoint-restart~\cite{bent_plfs_2009}.  But the workload also appears in
-cloud workloads~\cite{xiao:socc15-shardfs}, where systems like Hadoop use the
-file abstraction to exchange work units to workers or to indicate when jobs
-complete~\cite{shvachko:login2012-hdfs-scalability}. A more familiar example is
-uncompressing an archive ({\it e.g.}, \texttt{tar xzf}), where the file system
-services a flash crowd of creates across all directories as shown in
-Figure~\ref{fig:overhead-creates}.  The workload is clients creating 100K files
-in private directories in the same global namespace.
+For example, Figure~\ref{figure:workload-tar} shows the metadata locality when
+compiling the Linux source code. The ``heat" of each directory is calculated
+with per-directory metadata counters, which are tempered with an exponential
+decay.  The hotspots can be correlated with phases of the job: untarring the
+code has high, sequential metadata load across directories and compiling the
+code has hotspots in the \texttt{arch}, \texttt{kernel}, \texttt{fs}, and
+\texttt{mm} directories. The resource utilization on the metadata server during
+this compilation is shown in Figure~\ref{}. 
 
-%Maintaining a file system hierarchy and file attributes is notoriously
-%difficult in high-performance computing (HPC), where checkpointing behavior
-%induces ``flash crowds" of clients simultaneously opening, writing, and
-%destroying files in the same vicinity  ({\it e.g.}, a directory). 
+A problem in HPC is users unintentionally accessing files in a another user's
+directory. This behavior introduces false sharing and many file systems revoke
+locks and cached items associated to the directory touched by the interfering
+client.  While HPC tries to avoid these situations with
+workflows~\cite{zheng:pdsw2014-batchfs, zheng:pdsw2015-deltafs}, it still
+happens in distributed file systems when users unintentionally access
+directories in a shared file system.  \newcomment{ In the cloud, Spark and
+Hadoop stacks use HDFS, which lets clients ignore this type of consistency
+completely by letting interfering clients read files opened for
+writing~\cite{hakimzadeh:dais14-hdfs-consistency}.}
 
-\textbf{Listing Directories}:
-The use case is that users often leverage the file system to check the progress
-of jobs using \texttt{ls} even though this operation is notoriously
-heavy-weight~\cite{carns:ipdps09-pvfs, eshel:fast10-panache} . The number of
-files or size of the files is indicative of the progress. This practice is not
-too different from systems that use the file system to manage the progress of
-jobs; Hadoop writes to temporary files, renames them when complete, and creates
-a ``DONE" file to indicate to the runtime that the task did not fail and should
-not be re-scheduled on another node. In this scenario, Cudele users will not
-see the progress of decoupled namespaces since their updates are not globally
-visible.  To help users judge the progress of their jobs, Cudele clients have a
-``namespace sync" that sends batches of updates back to the global namespace at
-regular intervals.
+%Exploiting this locality has positive implications for performance because it
+%reduces the number of requests, lowers the communication across metadata server
+%nodes, and eases memory pressure.  CephFS tries to leverage this spatial,
+%temporal, and request-type locality in metadata intensive workloads using
+%dynamic subtree partitioning, but struggles to find the best degree of locality
+%and balance.
 
-% distributed file metadata
-To combat the speed and dynamic nature of these metadata workloads, the
-community has turned to metadata clusters instead of single metadata
-servers~\cite{patil:fast2011-giga+,weil:osdi2006-ceph,weil:sc2004-dyn-metadata,
-sinnamohideen:atc2010-ursa, xing:sc2009-skyfs}.  Applications perform better
-with dedicated metadata servers~\cite{sevilla:sc15-mantle, ren:sc2014-indexfs}
-but provisioning a metadata server for every client is unreasonable. This
-problem is exacerbated by current hardware and software trends; for example,
-HPC architectures are transitioning from complex storage stacks with burst
-buffer, file system, object store, and tape tiers to more simplified stacks
-with just a burst buffer and object store~\cite{bent:login16-hpc-trends}. These
-types of trends put pressure on data access because more requests end up
-hitting the same layer and latencies cannot be hidden while data migrates
-across tiers.
+\subsection{Temporal Locality During Create Flash Crowds}
+\label{sec:temporal-locality-during-create-flash-crowds}
 
-\section{Global Semantics: Strong consistency}
+Creates in the same directory is a problem in
+HPC~\cite{weil:sc2004-dyn-metadata, ren:sc2014-indexfs, patil:fast2011-giga,
+zheng:pdsw2014-batchfs, sevilla:sc15-mantle}, mostly due to
+checkpoint-restart~\cite{bent_plfs_2009}. Flash crowds of checkpoint-restart
+clients simultaneously open, write, and close files within a directory.  
+But the workload also appears in cloud workloads: Hadoop/Spark use the file
+\newcomment{system to assign work units to workers and the performance is
+proportional to the open/create throughput of the underlying file
+system~\cite{xiao:socc15-shardfs, shi:vldb15-spark,
+shvachko:login2012-hdfs-scalability}; Big Data Benchmark jobs examined
+in~\cite{chaimov:hpdc16-spark} have on the order of 15,000 file opens or
+creates just to start a single Spark query and the Lustre system they tested on
+did not handle creates well, showing up to a \(24\times\) slowdown compared to
+other metadata operations. Common approaches to solve these types of
+bottlenecks is to change the application behavior or to design a new file
+system, like BatchFS or DeltaFS, that uses one set of metadata optimizations
+for the entire namespace.} \oldcomment{ abstraction to exchange work units to
+workers or to indicate when jobs complete  The workload is clients creating
+100K files in private directories in the same global namespace.} Even smaller
+scale programs induce create flast crowds. 
+
+Many of our benchmarks use a create-heavy workload because it has high resource
+utilization, as shown by the trace of compiling the Linux kernel in a CephFS
+mount in Figure~\ref{fig:overhead-creates}.  For example, when uncompressing an
+archive ({\it e.g.}, \texttt{tar xzf}) the file system services a flash crowd
+of creates across all directories as shown by the \texttt{untar} phase in
+Figure~\ref{fig:overhead-creates}.  Figure~\ref{fig:overhead-creates} shows how
+the the \texttt{untar} phase, which is characterized by many creates, has the
+highest resource usage (combined CPU, network, and disk) on the metadata server
+because of the number of RPCs needed for consistency and durability.  
+
+\subsection{Listing Directories}
+\label{sec:listing-directories}
+
+As discussed before, this is common for general users ({\it e.g.}, reading a
+directory after a job completes), but users also use the file system for its
+centralized consistency.  For example, users often leverage the file system to
+check the progress of jobs using \texttt{ls} even though this operation is
+notoriously heavy-weight~\cite{carns:ipdps09-pvfs, eshel:fast10-panache}. The
+number of files or size of the files is indicative of the progress. This
+practice is not too different from cloud systems that use the file system to
+manage the progress of jobs; Spark/Hadoop writes to temporary files, renames
+them when complete, and creates a ``DONE" file to indicate to the runtime that
+the task did not fail and should not be re-scheduled on another node.
+\newcomment{So the browser interface lets Hadoop/Spark users check progress by
+querying the file system and returning a \% of job complete metric.} 
+
+\section{Global Semantics: Strong Consistency}
 
 % what is it
 Access to metadata in a POSIX IO-compliant file system is strongly consistent,
@@ -175,7 +197,7 @@ they must come to an agreement.  This limits parallelization and metadata
 performance has been shown to {\it decrease} with more sockets in
 Lustre~\cite{konstantinos:pdsw2014-lustre-metadata}. As a result, and because
 it is simpler to implement, many distributed file systems limit the number of
-threads in one metadata server~\cite{weil:osdi2006-ceph,
+threads to one for all metadata servers~\cite{weil:osdi2006-ceph,
 alam:pdsw2011-metadata-scaling, ren:sc2014-indexfs}. 
 
 % heavy weight agreement
@@ -185,67 +207,66 @@ PAXOS~\cite{lamport_parttime_1998}, Zookeeper~\cite{hunt_zookeeper_2010}, or
 Chubby~\cite{burrows_chubby_2006} are common techniques for maintaining
 consistent versions of state in groups of processes that may disagree, but
 putting them in the data path is a large bottleneck. In fact, PAXOS is used in
-Ceph and Zookeeper in Apache stacks to maintain cluster state not for doing IO.
-Distributed file systems do not use this technique because of the overhead.
+Ceph and Zookeeper in Apache stacks to maintain cluster state but not for
+mediating IO.  
 
 % leases, locks, capabilities
 Many distributed file systems use state machines to guard access to file system
 metadata.  These state machine are stored with traditional file system metadata
-({\it e.g.}, size, owner, etc.) and they enforce the level of isolation that
-clients are guaranteed while they are reading or writing a file. CephFS calls
-them capabilities and they are managed by authority metadata servers~\cite{},
-GPFS calls them write locks and they can be shared~\cite{}, Panasas refers to
-them as locks and callbacks~\cite{}, IndexFS calls them leases and they are
-dropped after a timeout~\cite{}, Lustre calls them locks and they protect
-inodes, extents, and file locks with different modes of
-concurrency~\cite{wang:tech09-lustre}.  Because this form of consistency has
-high overhead many systems optimize performance by improving the locking
-protocols, caching inodes, and relaxing consistency.
+and they enforce the level of isolation that clients are guaranteed while they
+are reading or writing a file. CephFS calls them capabilities and they are
+managed by authority metadata servers~\cite{}, GPFS calls them write locks and
+they can be shared~\cite{}, Panasas refers to them as locks and
+callbacks~\cite{}, IndexFS calls them leases and they are dropped after a
+timeout~\cite{}, Lustre calls them locks and they protect inodes, extents, and
+file locks with different modes of concurrency~\cite{wang:tech09-lustre}.
+Because this form of consistency is a bottleneck for metadata access, many
+systems optimize performance by improving locking protocols, caching inodes,
+and relaxing consistency.
 
-\subsection{Optimization: Lock Management}
+\subsection{Lock Management}
 
 The global view of these state machines, which we refer to as locks from now
 on, are read and modified with RPCs from clients.  Single node metadata
-servers have the simplest implementations but scalability limits. GFS and HDFS
-have single node implementations with simple timeouts exposed as
-configurations. These implementations do not scale for metadata-heavy workloads
-so a natural approach to improving performance is to use a cluster to manage
-locks.
+services, such as GFS and HDFS, have the simplest implementations and expose
+simple lock configurations like timeout thresholds.  These implementations do
+not scale for metadata-heavy workloads so a natural approach to improving
+performance is to use a cluster to manage locks.
 
 % multi node metadata servers
 Distributed lock management systems spread the lock request load across a
-cluster of servers. One approach is to co-locate metadata servers that
-handle just metadata IO with storage servers. PVFS2 lets users spin up metadata
+cluster of servers. One approach is to co-locate metadata servers that handle
+just metadata IO with storage servers. PVFS2 lets users spin up metadata
 servers on both storage and non-storage servers. The disadvantage of this
 approach is resource contention and poor file system metadata locality,
-respectively. Another approach is to orchestrate a dedicated metadata cluster,
-that accounts for load imbalance and locality. GPFS assigns a process as the
-authority of all locks which synchronizes access to metadata. Local servers
-become the authority of metadata by contacting the global lock manager,
-enabling optimizations like reducing RPCs. An even more decentralized approach
-is to associate an authority process per inode. Servers manage parts of the
-namespace and respond to client requests for locks~\cite{wang:tech09-lustre,
-ren:sc2014-indexfs, weil:sc2004-dyn-metadata, welch:fast08-panasas}.  These
-decentralized approaches have more complexity but are flexible enough to
-service a range of workloads.
+respectively. Another approach is to orchestrate a dedicated metadata cluster
+from a centralized lock manager, that accounts for load imbalance and locality.
+GPFS assigns a process as the authority of all locks which synchronizes access
+to metadata. Local servers become the authority of metadata by contacting the
+global lock manager, enabling optimizations like reducing RPCs. A decentralized
+version of this approach is to associate an authority process per inode.
+Servers manage parts of the namespace and respond to client requests for
+locks~\cite{wang:tech09-lustre, ren:sc2014-indexfs, weil:sc2004-dyn-metadata,
+welch:fast08-panasas}.  These decentralized approaches have more complexity but
+are flexible enough to service a range of workloads.
 
-\subsection{Optimization: Cache Inodes}
+\subsection{Caching Inodes}
 
 The discussion above refers to server-server lock exchange, but systems can
 also optimize client-server lock management. Caching inodes on both the client
-and server lets clients modify metadata locally.  This reduces the number of
-RPCs required to agree on the state of metadata.  For example, CephFS caches
+and server lets clients read/modify metadata locally.  This reduces the number
+of RPCs required to agree on the state of metadata.  For example, CephFS caches
 entire inodes, Lustre caches lookups, IndexFS caches ACLs, PVFS2 maintains a
 namespace cache and an attribute cache, Panasas lets clients read, cache, and
 parse directories~\cite{welch:fast08-panasas}, GPFS and Panasas cache the
 results of \texttt{stat()}~\cite{docs:cephcaps, schmuck:fast2002-gpfs,
 wang:tech09-lustre, depardon:tech13-survey}, and GFS caches file
 location/striping strategies.  Some systems, like Ursa Minor and pNFS maintain
-client caches to reduce the overheads of NFS. These caches lead to performance
-gains but the cache coherency mechanisms add significant complexity and
-overhead for some workloads.
+client caches to reduce the overheads of NFS. These caches improve performance
+but the cache coherency mechanisms add significant complexity and overhead for
+some workloads.
 
-\subsection{Optimization: Relaxing Consistency}
+\subsection{Relaxing Consistency}
 
 % What is HPC doing?
 A more disruptive technique is to relax the consistency semantics in the file
@@ -290,21 +311,29 @@ IO" option, which lets clients buffer reads/writes even if other clients have
 the file open and if the client maintains its own cache
 coherency~\cite{docs:cephcaps}.  Lazy Hybrid updates and migrates metadata (for
 elastic clusters) using the eventual consistency model.
+Despite the obvious path traversal benefits, LH fails to adapt to the
+locality in a workload. It can rebalance when servers are added and removed,
+but the request behavior does not dictate where and when metadata migrates.
+For example, file system metadata services in HPC have scalability problems
+because common tasks, like checkpointing~\cite{bent_plfs_2009} or scanning the
+file system~\cite{zheng:pdsw2014-batchfs}, contend for the same directories and
+inodes.
 
 \section{Global Semantics: Durability}
 
 While durability is not specified by POSIX IO, users expect that files they
 create or modify survive failures. The accepted technique for achieving
-durability is append events to a journal of metadata updates.  Similar to
+durability is to append events to a journal of metadata updates.  Similar to
 LFS~\cite{rosenblum:acm1992-LFS} and WAFL~\cite{hitz:wtec1994-WAFL} the
 metadata journal is designed to be large (on the order of MBs) which ensures
 (1) sequential writes into the storage device ({\it e.g.}, object store, local
 disk, etc.) and (2) the ability for daemons to trim redundant or irrelevant
 journal entries. We refer to metadata updates as a journal, but of course,
 terminology varies from system to system ({\it e.g.}, operation log, event
-list, etc.). 
+list, etc.). Ensuring durability has overhead and as a result, many
+optimizations target the file system's journal format and mechanisms.
 
-\subsection{Optimization: Journal Format}
+\subsection{Journal Format}
 
 A big point of contention for distributed file systems is not the technique of
 journaling metadata updates, rather it is the format of metadata. CephFS
@@ -316,8 +345,12 @@ database and updates are are written to the local FS as large objects
 (write-ahead logs, SSTables, large files). Panasas separates requests out into
 separate logs to account for the semantic meaning and overhead of different
 requests (``op-log" for creates and updates and ``cap-log" for capabilities).
+Many papers claim that an optimized journal format leads to large performance
+gains~\cite{ren:atc2013-tablefs, ren:sc2014-indexfs, zheng:pdsw2014-batchfs}
+but we have found that the journal safety mechanisms have a much bigger impact
+on performance~\cite{sevilla:ipdps18-cudele}.
 
-\subsection{Optimization: Journal Safety}
+\subsection{Journal Safety}
 
 We define three types of durability: global, local, and none.  Global
 durability means that the client or server can fail at any time and metadata
@@ -334,14 +367,16 @@ be lost when components die in a None configuration. Although we know of no
 such system, storing the journal in a RAMDisk would be an example of a system
 with a durability level of none.
 
-Panasas assigns durability components to specific types of hardware. The
-journal is stored in battery-backed NVRAM and later replicated to both remote
-peers and metadata on objects. The software that writes the actual operations
-behaves similar to WAFL/LFS without the cleaner. The system also stores
-different kids of metadata (system vs. user, read vs. write) in different
-places. For example, directories are mirrored across the cluster using RAID1.
-This domain-specific mapping to hardware achieves high performance but
-sacrifices software options and cost flexibility.
+Implementations of the types of durability vary, ranging from completely
+software-defined storage to architectures where hardware and software are more
+tightly-coupled, such as Panasas.  Panasas assigns durability components to
+specific types of hardware. The journal is stored in battery-backed NVRAM and
+later replicated to both remote peers and metadata on objects. The software
+that writes the actual operations behaves similar to WAFL/LFS without the
+cleaner. The system also stores different kinds of metadata (system vs. user,
+read vs. write) in different places. For example, directories are mirrored
+across the cluster using RAID1. This domain-specific mapping to hardware
+achieves high performance but sacrifices software options and cost flexibility.
 
 \section{Hierarchical Semantics}
 
@@ -356,12 +391,15 @@ times.
 % Path traversal
 To maintain these semantics, file systems must implement path traversal. Path
 traversal starts at the root of the file system and checks each path component
-until reaching the desired file. This type of workload has locality, since
-directories at the top of a namespace are accessed more often~\cite{indexfs}
-and because workloads tend to access files that are close in the namespace
-spatially~\cite{weilthesis}.
+until reaching the desired file. This process has write and read amplification
+because accessing lower subtrees in the hierarchy requires RPCs to upper
+levels. To reduce this amplification, many systems try to leverage the
+workload's locality; namely that directories at the top of a namespace are
+accessed more often~\cite{ren:sc2014-indexfs} and files that are close in the
+namespace spatially are more likely to be accessed
+together~\cite{weil:osdi2006-ceph, weil:sc2004-dyn-metadata}.
 
-\subsection{Optimization: Caching}
+\subsection{Caching Paths}
 
 % address dirs at the top
 To leverage the fact that directories at the top of the namespace are accessed
@@ -384,14 +422,53 @@ zhu:pds2008-hba}.  Caching popular inodes can help improve locality, but this
 technique is limited by the size of the caches and only performs well for
 temporal metadata, instead of spatial metadata locality. Xing et
 al.~\cite{xing:sc2009-skyfs} reduce the storage footprint for metadata using
-hierchical bloom filter arrays but this akin to putting a band-aid on the
+hierchical bloom filter arrays but this is akin to putting a band-aid on the
 problem rather than addressing the root cause.  Furthermore, cache coherence
 requires a fair degree of sophistication, limiting its ability to dynamically
 adapt to the flash crowds.
 
-\subsection{Optimization: Metadata Distribution}
+\subsection{Metadata Distribution}
+
+% distributed file metadata
+The community has turned to metadata clusters instead of single metadata
+servers~\cite{patil:fast2011-giga+,weil:osdi2006-ceph,weil:sc2004-dyn-metadata,
+sinnamohideen:atc2010-ursa, xing:sc2009-skyfs}.  Applications perform better
+with dedicated metadata servers~\cite{sevilla:sc15-mantle, ren:sc2014-indexfs}
+but provisioning a metadata server for every client is unreasonable. This
+problem is exacerbated by current hardware and software trends; for example,
+HPC architectures are transitioning from complex storage stacks with burst
+buffer, file system, object store, and tape tiers to more simplified stacks
+with just a burst buffer and object store~\cite{bent:login16-hpc-trends}. These
+types of trends put pressure on data access because more requests end up
+hitting the same layer and latencies cannot be hidden while data migrates
+across tiers.
+
+% addressing inconsistency
+\subsubsection{Correctness: Addressing Metadata Inconsistency}
+
+Distributing metadata across a cluster requires distributed transactions and
+cache coherence protocols to ensure strong consistency ({e.g.}, POSIX).  For
+example, ShardFS pessimistically replicates directory state and uses optimistic
+concurrency control for conflicts; namely it does the operation and if there is
+a conflict at verification time it falls back to two-phase locking.  Another
+example is IndexFS's inode cache which reduces RPCs by caching ancestor paths
+-- the locality of this cache can be thrashed by random reads but performs well
+for metadata writes. For consistency, writes to directories in IndexFS block
+until the lease expires while writes to directories in ShardFS are slow for
+everyone as it either requires serialization or locking with many servers;
+reads in IndexFS are subject to cache locality while reads in ShardFS always
+resolve to 1 RPC.  Another example of the overheads of addressing inconsistency
+is how CephFS maintains client sessions and inode caches for capabilities
+(which in turn make metadata access faster). When metadata is exchanged between
+metadata servers these sessions/caches must be flushed and new statistics
+exchanged with a scatter-gather process; this halts updates on the directories
+and blocks until the authoritative metadata server responds.  These protocols
+are discussed in more detail in the next section but their inclusion here is a
+testament to the complexity of migrating metadata.
 
 % address locality
+\subsubsection{Performance: Leveraging Locality}
+
 Approaches that leverage the workload's spatial locality ({\it i.e.} requests
 targeted at a subset of directories or files) focus on how metadata is
 distributed across the cluster. File systems that hash their namespace spread
@@ -408,14 +485,14 @@ with the workload is minimal.
 
 % website:lustre
 Another technique is to assign subtrees of the hierarchal namespace to server
-nodes. Mostsystems use a static scheme to partition the namespace at setup,
+nodes. Most systems use a static scheme to partition the namespace at setup,
 which requires an administrator. Ursa Minor~\cite{sinnamohideen:atc2010-ursa}
 and Farsite~\cite{doucer:osdi2006-farsite-dir} traverse the namespace to assign
 related inode ranges, such as inodes in the same subtree, to servers. This
 benefits performance because the metadata server nodes can act independently
 without synchronizing their actions, making it easy to scale for breadth
 assuming that the incoming data is evenly partitioned.  Subtree partitioning
-also gets good locality, making multi-object operations and transactions more
+achieves good locality, making multi-object operations and transactions more
 efficient. If carefully planned, the metadata distributions can achieve both
 locality and even load distribution, but their static distribution limits their
 ability to adapt to hotspots/flash crowds and to maintain balance as data is
@@ -423,15 +500,59 @@ added.  Some systems, like Panasas~\cite{welch:fast2008-panasas}, allow certain
 degrees of dynamicity by supporting the addition of new subtrees at runtime,
 but adapting to the current workload is ignored. 
 
-\subsection{Optimization: Load Balancing}
+%For metadata writes it does a distributed transaction; monotonic writes with
+%concurrent clients fail and do pessimistic locking through a mediated lock
+%server to ensure strong consistency, non-monotonic writes grab locks at every
+%server. Zooming in on monotonic writes: if permissions increase it executes on
+%a primary then non-primary, if permissions decrease it executes on all
+%non-primary then on primary.
 
-Research for load balancing file system metadata in response to workloads is in
-its infancy.  IndexFS shards directories across the cluster of metadata server
-when a file threshold is reached. This approach is relatively simple but is
-only optimized for create-heavy workloads. CephFS has the ability to shard
-directories or move entire directories to different metadata servers. This
-approach has the potential to work for many types of workloads but is
-relatively complicated.  The biggest problem is making policies for guiding
-migration decisions. For example, deciding when to migrate load, where to
-migrate load, and how much of the load to migrate are all policy decisions with
-different trade-offs.
+\subsubsection{Performance: Load Balancing}
+
+% approaches to load balancing (strong = more resuorces per unit work, weak =
+% fixed resource per work unit)
+One approach for improving metadata performance and scalability is to alleviate
+overloaded servers by load balancing metadata IO across a cluster. Common
+techniques include partitioning metadata when there are many writes and
+replicating metadata when there are many reads. For example,
+IndexFS~\cite{ren:sc2014-indexfs} partitions directories and clients write to
+different partitions by grabbing leases and caching ancestor metadata for path
+traversal; it does well for strong scaling because servers can keep more inodes
+in the cache which results in less RPCs.  Alternatively, ShardFS replicates
+directory state so servers do not need to contact peers for path traversal; it
+does well for read workloads because all file operations only require 1 RPC and
+for weak scaling because requests will never incur extra RPCs due to a full
+cache.  CephFS employs both techniques to a lesser extent; directories can be
+replicated or sharded but the caching and replication policies do not change
+depending on the balancing technique.  Despite the performance benefits these
+techniques add complexity and jeopardize the robustness and performance
+characteristics of the metadata service because the systems now need (1)
+policies to guide the migration decisions and (2) mechanisms to address
+inconsistent states across servers.
+
+% policies
+Setting policies for migrations is arguably more difficult than adding the
+migration mechanisms themselves.  For example, IndexFS and CephFS use the
+GIGA+~\cite{patil:fast2011-giga} technique for partitioning directories at a predefined
+threshold and using lazy synchronization to redirect queries to the server that
+``owns" the targeted metadata.  Determining when to partition directories and
+when to migrate the directory fragments are policies that vary between systems:
+GIGA+ partitions directories when the size reaches a certain number of files
+and migrates directory fragments immediately; CephFS partitions directories
+when they reach a threshold size or when the write temperature reaches a
+certain value and migrates directory fragments when the hosting server has more
+load than the other servers in the metadata cluster. Another policy is when and
+how to replicate directory state; ShardFS replicates immediately and
+pessimistically while CephFS replicates only when the read temperature reaches
+a threshold.  There is a wide range of policies and it is difficult to maneuver
+tunables and hard-coded design decisions.
+
+The conclusion we have drawn from this related work is that metadata protocols
+have a bigger impact on performance and scalability than load balancing.  
+Understanding these protocols helps load balancing and gives us a better
+understanding of the metrics we should use to make migration decisions ({\it
+e.g.}, which operations reflect the state of the system), what types of
+requests cause the most load, and how an overloaded system reacts ({\it e.g.},
+increasing latencies, lower throughput, etc.).
+
+

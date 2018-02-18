@@ -35,6 +35,18 @@
 \usepackage{listings}
 \usepackage{minted}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Uncomment for diff 
+%\newcommand{\newcomment}[1]{{\textcolor{blue}{#1}}}
+%\newcommand{\oldcomment}[1]{{\textcolor{red}{\textbf{\sout{#1}}}}}
+%\newcommand{\addressesissue}[1]{{\textcolor{red}{{\it (Addresses issue(s): {#1})}}}}
+
+% Uncomment for camera-ready
+\newcommand{\newcomment}[1]{{\textcolor{black}{#1}}}
+\newcommand{\oldcomment}[1]{}
+\newcommand{\addressesissue}[1]{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \newcommand{\tab}{\hspace*{2em}}
 \newcommand{\cmark}{\ding{51}}
 \newcommand{\xmark}{\ding{55}}
@@ -47,37 +59,38 @@
 
 \begin{document}
   %\ssp
-  \include{./chapters/title}
-  \include{./chapters/introduction}
+  %\include{./chapters/title}
+  \tableofcontents
+  %\include{./chapters/introduction}
   \include{./chapters/related-work}
   %\include{./chapters/ceph} 
 
-  \include{./chapters/malacology/0_malacology}
+  %\include{./chapters/malacology/0_malacology}
 
-  \include{./chapters/mantle/1_mantle}
-  \include{./chapters/mantle/2_background}
-  \include{./chapters/mantle/3_implementation}
-  \include{./chapters/mantle/4_evaluation}
-  \include{./chapters/mantle/5_related}
-  \include{./chapters/mantle/6_conclusion}
+  %\include{./chapters/mantle/1_mantle}
+  %\include{./chapters/mantle/2_background}
+  %\include{./chapters/mantle/3_implementation}
+  %\include{./chapters/mantle/4_evaluation}
+  %\include{./chapters/mantle/5_related}
+  %\include{./chapters/mantle/6_conclusion}
 
-  \include{./chapters/controlplane/controlplane}
-  \include{./chapters/controlplane/malacology/1_domain1}
-  \include{./chapters/controlplane/malacology/3_evaluation}
-  \include{./chapters/controlplane/parsplice/1_domain2}
-  \include{./chapters/controlplane/parsplice/2_parsplice-keyspace-analysis}
-  \include{./chapters/controlplane/parsplice/3_implementation}
-  \include{./chapters/controlplane/parsplice/4_policies}
-  \include{./chapters/controlplane/parsplice/5_file-systems}
-  \include{./chapters/controlplane/parsplice/6_conclusion}
+  %\include{./chapters/controlplane/controlplane}
+  %\include{./chapters/controlplane/malacology/1_domain1}
+  %\include{./chapters/controlplane/malacology/3_evaluation}
+  %\include{./chapters/controlplane/parsplice/1_domain2}
+  %\include{./chapters/controlplane/parsplice/2_parsplice-keyspace-analysis}
+  %\include{./chapters/controlplane/parsplice/3_implementation}
+  %\include{./chapters/controlplane/parsplice/4_policies}
+  %\include{./chapters/controlplane/parsplice/5_file-systems}
+  %\include{./chapters/controlplane/parsplice/6_conclusion}
 
-  \include{./chapters/cudele/1_introduction}
-  \include{./chapters/cudele/3_posix_overheads}
-  \include{./chapters/cudele/4_methodology}
-  \include{./chapters/cudele/5_implementation}
-  \include{./chapters/cudele/6_results}
-  \include{./chapters/cudele/2_related_work}
-  \include{./chapters/cudele/7_conclusion}
+  %\include{./chapters/cudele/1_introduction}
+  %\include{./chapters/cudele/3_posix_overheads}
+  %\include{./chapters/cudele/4_methodology}
+  %\include{./chapters/cudele/5_implementation}
+  %%\include{./chapters/cudele/6_results}
+  %\include{./chapters/cudele/2_related_work}
+  %\include{./chapters/cudele/7_conclusion}
 
   \bibliographystyle{abbrv}
   \bibliography{paper}
