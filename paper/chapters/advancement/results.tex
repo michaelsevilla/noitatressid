@@ -1,0 +1,426 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RESULTS
+\chapter{Results}
+\label{results}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In this section, we discuss our experiences with CephFS. We first explain how we collect metrics. Then we describe our conversations with the Ceph team about the status of CephFS. Our experimental results show that CephFS can balance load but the heuristics and load-balancing algorithms are relatively unexplored. Our experiments with microbenchmarks have revealed symptoms of poor load balancing, but we show how the local metrics can be tied to performance. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% COLLECTING METRICS
+\section{Collecting metrics}
+\label{results_collecting-metrics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Where we collect metrics from
+This work collects measurements from the operating system and from the performance counters in CephFS. The raw CPU utilization is monitored with collectl, a daemon that periodically polls the total utilization across all cores in the system. CephFS collects the CPU load from \path{/etc/proc/load}, which tracks the average CPU utilization over windows of 1, 5, and 10 minutes - while this load prevents aggressive migrations by normalizing utilization spikes, it masks many important behaviors. The CephFS performance counters are variables incremented in the source code when events occur. To measure the cache hits, throughput, and latency, the scripts extract values for path traversals, missed path traversals, client replies, and the sum of the latencies of client replies. 
+
+% Client metrics
+An important part of understanding the behavior of CephFS is to see which requests are going where. Initially, we could only look at the operating system and performance counter metrics to know which events the cluster was processing. To understand the layout of the system, such as which MDS held which subtrees, we had to look at the debug logs. The debug logs can tell us when things fragment and split, but turning up the debugging incurred noticeable latency and large logs. To solve this problem, we re-instrumented the client to only track each request and its target. Each data point in the graph represents a request type and the \(y\)-axis indicates the target of the request. The data points are connected with a curve, where each curve represents a unique client. With these ``client activity curve", we can plot a different metric on the second \(y\)-axis to show how the metrics correspond to the layout of the system. 
+
+% The overhead of collecting measurements (blindspots)
+It is important to understand the penalties of collecting our measurements. Profiling and debugging has the potential to mask the real behavior of the system. The system developer must understand the ``blind spots" introduced by the profiling tools. For example, OProfile, the CPU profiler we use to understand where the CPU is spending its time, produces samples of itself. As we design this system, we should periodically remove all monitoring tools just to ensure that the system is doing what we think it's doing. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SYSTEM BEHAVIOR
+\section{System behavior}
+\label{results_system-behavior}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% How should it behave?
+Before exploring better ways to migrate metadata, we must understand how the metadata cluster behaves now - when it migrates resources, where it migrates resources, how much it migrates, and why. We need to know what the code does now, why it was designed that way, and if it succeeds in balancing load and achieving the best performance. We also try to be well-versed in what has been attempted and how these heuristics should scale. To do this, we consulted the experts and experiment with our own private cluster. 
+
+\subsection{Consulting the experts}
+% Consulting the experts
+We consulted the experts, namely the Inktank and the Ceph mailing lists, and asked about the key limitations of the MDS cluster, the workloads that stress the cluster, and the trade-offs they acknowledge when balancing load. The responses fell into 3 categories: (1) the MDS cluster behavior is unexplored, (2) development has `minimal viable product' priorities, and (3) the MDS stability is questionable.
+
+% MDS cluster behavior unexplored
+\subsubsection{Unexplored}
+First, the MDS cluster is unexplored; in fact, the load distribution and balancing have not been examined since the original papers~\cite{weil:sc2004-dyn-metadata,weil:osdi2006-ceph}. There is no documentation on the limits of the MDS cluster, the behavior of the client or MDS, or on hotspot mitigation. Sage has not tuned or tweaked the MDS cluster policies since his time at UCSC and none of the behaviors have been explored in the current code. \\
+
+\noindent\textbf{Bottom Line}: This is good because it means that we start from the beginning, with simple tests, just to understand the problem and how the system behaves. From there, we can propose more sophisticated heuristics for the MDS cluster. 
+
+% Minimal viable product
+\subsubsection{Community Priorities}
+Second, the Ceph developers are driving towards a `\href{http://ceph.com/dev-notes/cephfs-mds-status-discussion/}{\textcolor{magenta}{minimal viable product}}'. This standard focuses on solving problems that are easy from a development prospective (i.e. ``picking the low hanging fruit"). The `minimal viable product' framework consists of both stabilizing the file system and laying the groundwork for the features that Ceph originally dreamed of. To stabilize the Ceph file system, the team is focusing on limiting the implementation to a single MDS, to unlimited files in the hierarchy but a maximum number of entries per directory (similar to Farsite~\cite{doucer:osdi2006-farsite-dir}), and to compatibility with POSIX without \texttt{fsck} and snapshotting. To lay the groundwork for future capabilities, the team seeks to provide unlimited client scaling, high throughput scalability, object placement and retrieval using locality heuristics, and many interfaces into the file system in the `minimal viable product'. \\
+
+\noindent\textbf{Bottom Line}: This is good because this minimal viable product goal means that the community is interested in CephFS and it is a viable component in the product roadmap. This focus on the core functionality gives me room to play with the system in isolation. 
+
+% Stability
+\subsubsection{Unstable}
+Finally, the stability of multiple MDSs is unknown. The community responded to the `minimal viable product' with requests that suited (or were required by) their current needs. They expressed a need for reliable failover, which necessitates a form of \texttt{fsck}, snapshotting, and more advanced monitoring tools. They also seemed interested in a user-quotas, since the Ceph file system is being deployed with many clients that need to be limited. 
+
+This is good because I can help them test and debug the MDS to get it to a state where I can begin testing. This has two benefits, (1) it familiarizes me with the code, and (2) it will help me grasp the true power of the migration system. The MDS cluster is unstable, so the team is focusing on a `minimal viable product' with a single MDS server. However, the `active' and `standby' features are very stable. This allows us to partition many MDSs in case of failures or to take over maintenance. Again, this is not to say that the multi-MDS doesn't work, we are just saying that it is not as well-tested or stable as the rest of Ceph or single MDS. In particular, the testing for the MDS service(s) is only stressed by the current workload suites in Ceph's distribution. The `teuthology' test suite serve as regression tests for the Ceph file system and if the users workloads follows that template, failures should be minimal. The Ceph file system team makes no guarantees if anuser's workloads deviate slightly from their internal regression tests. \\
+
+\noindent\textbf{Bottom Line}: This is good because the instability doesn't affect the viability or feasibility of the project. It just means that I'll be working closely with the Ceph file system team and will need to focus on the system behavior more than the data I put in the system. 
+
+
+\subsection{Decision Making}
+\begin{figure*}[tbh]
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering
+	\includegraphics[width=1\textwidth]{./figures/graphs/load/creates_5mds_1client_v0.pdf} 
+	\caption{Load can be distributed.\label{creates_5mds_1client_v0}}
+	\end{subfigure}
+	~
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/graphs/load/creates_5mds_1client_v1.pdf}
+	\caption{Balancing load is unpredictable.\label{creates_5mds_1client_v1}}
+	\end{subfigure}	
+	\caption{\textbf{CephFS migrates resources}: under the same create-intensive workload, the metadata cluster performs differently depending on ``how" and ``when" it migrates resources. \label{load}}
+\end{figure*}
+
+% Setup
+Preliminary experiments show that CephFS can properly balance load amongst the MDSs but the effects on performance and the cluster's behavior are unpredictable. We deploy CephFS with a 5-node metadata cluster and issue 50,000 file create requests from 1 node. We use \texttt{mdtest}, the popular benchmark for HPC to issue the requests in parallel with 10 tasks. Figure~\ref{load} shows a breakdown of the load on the entire cluster over time. Time (\(x\) axis) shows when each job phases occurs and the total load (\(y\) axis) is calculated using the request rate/latency. 
+  
+% Observations
+Figure~\ref{creates_5mds_1client_v0} shows that CephFS can effectively balance load across the metadata cluster.  When the load reaches a threshold, MDS0 fragments the hot directory across all 5 MDSs. In Figure~\ref{creates_5mds_1client_v1}, we switch the order of the nodes; the node that used to be MDS4 is now set to be the primary node (MDS0). Although the workload and the involved nodes are the same, the job finishes faster and only uses 3 MDS servers.
+\begin{figure}[tbh]
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/figures/client-activity-curves.png}
+	\caption{\textbf{``Client activity curves"}: shows the target of each request. The figure on the right shows the workload: 2 clients create 10,000 files in separate directories. It shows which MDSs are receiving load and compares different metrics along the second y axis.\label{client-activity-curves}}
+\end{figure}
+
+% Analysis
+This indicates that better load balancing does not imply better system performance and that effective resource migration depends on more than just CPU utilization and request rate/latency. We argue that perfect load balancing does not always imply good performance. In the next section, we present symptoms of a poor load balancer. 
+
+% What it does
+To understand how CephFS calculates load and migrates resources, we need a different type of graph that correlates workload requests with the system activity. We introduce ``client activity curves" graphs to help us understand the system's behavior. Figure~\ref{client-activity-curves} is an example, where the workload consists of 2 clients issuing 10,000 create file requests in separate directories. The colored data points indicate the type and destination MDS (left \(y\) axis) for each request. The filled curves show the load (right \(y\) axis) on each MDS. The \(x\) axis is the wall-clock time in seconds. Initially, the subtree is entirely managed by MDS0. Both clients mount and client 1 is redirected to MDS0. The clients start creating files at about 3 seconds. From the client request targets, we see good load balancing across the MDS cluster starting at 40 seconds because both clients interact with a different MDS. 
+
+% Calculating laod
+To understand why CephFS behaved this way, we learned how it calculates load and how it makes decisions. To calculate load, each MDS calculates a ``local load" and a ``cluster load". These loads are calculated using the metadata load, which is a function of the  frequency of the different metadata operations:
+\[\text{meta\_load} = 1*\text{RD} + 2*\text{WR} + 1*\text{READDIR} + 2*\text{FETCH} + 4*\text{STORE}\]
+
+\noindent The MDS uses this metadata load to calculate the load on the whole MDS:
+\begin{ssp}
+\begin{lstlisting}
+mds_load()
+   val =  0.8*(meta_load() on auth subtree)
+          + 0.2*(meta_load() on all subtrees)
+          + request rate
+          + 10*(pending metadata operations)
+   OR
+   val =  cpu_utilization
+\end{lstlisting}
+\end{ssp}
+
+% How CephFS works
+CephFS uses Algorithm~\ref{algo:balancer} to determine ``when" to move a resource, ``where" to move a resource, and ``how much" of a resource to move. To determine ``when" to move subtrees, each MDS compares its load to the total cluster load (lines~\ref{when0} and~\ref{when1}); if its load is greater than the target load it migrates subtrees. To determine ``where" to move subtrees, the MDS tries to move subtrees to underloaded host (line~\ref{where}). Finally, to determine ``how many" subtrees to move, the MDS tries to export as many directories as possible (line~\ref{howmuch}). 
+
+\begin{algorithm}
+\begin{ssp}
+\DontPrintSemicolon
+\small
+load = CPU, IO, or IO/metadata load\;
+target = \(\frac{\text{cluster load}}{\# \text{of MDSs}}\)\; 
+\If{load \(>\) target}{\label{when0}
+  \If{overloaded in pervious heartbeat}{\label{when1}
+    \If{load \(>\) target}{\label{howmuch}
+      match overloaded subtree to underloaded MDS\;\label{where}
+      update load\;
+    }
+  }
+}
+\end{ssp}
+\caption{CephFS load balancing algorithm.~\label{algo:balancer}}
+\end{algorithm}
+
+% What actually happened in Figure explain-load
+Using these calculations, we can step through the load calculations and decisions CephFS made in Figure~\ref{client-activity-curves}.
+
+
+
+\subsection{Poor load balancing}
+\begin{figure*}[tbh]
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering
+	\includegraphics[width=1\textwidth]{./figures/graphs/symptoms/sep_dir_clients2_mds3_cpu_cpu.pdf}
+	\caption{Creating in separate directories.~\label{sep-dir_clients2_mds3_cpu_cpu}}
+	\end{subfigure}
+	~
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/graphs/symptoms/same-dir_clients2.pdf} 
+	\caption{Creating in the same directory.~\label{thrashing}}
+	\end{subfigure}	
+	\caption{\textbf{Poor load balancing}: symptoms of poor load balancing in the CephFS MDS cluster include aggressive, unnecessary, and inefficient migrations (left). In the extreme case, poor load balancing can trigger thrashing (right).\label{load}}
+\end{figure*}
+
+
+We identify three symptoms of poor load balancing: (1) unnecessary migrations, (2) aggressive migrations, and (3) inefficient migrations. To discuss these migrations, we use a {\it client} to describe an entity that makes requests and a {\it host} to describe an entity that houses resources and processes requests. The balancer's heuristic must aim to avoid these migrations, but it is very difficult. Although CephFS has heuristics in place that {\it specifically aim to stop these behaviors}, it still fails for certain workloads.
+
+The experiment in Figure~\ref{sep-dir_clients2_mds3_cpu_cpu} encapsulates all three behaviors and we use it as a case study to describe different migration types. In that figure, two clients each send 50,000 create requests to separate directories. CephFS makes migration decisions based on the CPU load. The data points show where the clients send each request (left \(y\) axis). The CPU load curves represent the load for each MDS over a 1 minute sliding window (right \(y\) axis). All clients initially send requests to MDS0 until the first migration at time 1 minute. MDS0 realizes it is overloaded and unloads two directories to MDS1. After the directories migrate, the CPU load decreases (gradually due to the sliding window) because MDS0 is no longer processing requests. MDS0 remains inactive until it receives a directory from MDS2 at just after 2 minutes. MDS0 handles client requests until about 5 minutes into the run, at which time the directory is migrated back to MDS1. 
+
+\subsubsection*{Unnecessary migration}
+An unnecessary migration is when a host moves a resource and balance does not improve. The lack of improvement implies that it would have been better to keep the resource on the current host. As a result, the system incurs at the least the cost of the migration. Unnecessary migrations occur when the system erroneously determines ``when" to move resources. 
+
+For example, in Figure~\ref{sep-dir_clients2_mds3_cpu_cpu}, the MDS2 host moves the subtree resource to MDS1 at time 4 minutes. MDS2 erroneously moves the directory because its cluster load greater than the target cluster load. In fact, the unnecessary migration made the balance worse because now MDS2 is underloaded relative to the total cluster load.
+
+\subsubsection*{Inefficient migration}
+An inefficient migration is when a host moves a resource to a suboptimal host. If a better host (from a balancing perspective) exists in the system, failing to select it as a target wastes that host's resources and the system fails to capitalize on the migration with maximum benefit. Inefficient migrations occur when the system erroneously calculates ``where" to move resources. 
+
+For example, in Figure~\ref{sep-dir_clients2_mds3_cpu_cpu}, the MDS0 host moves a subtree resource to a suboptimal host just before the 5 minute mark. The target host is suboptimal because it already handling requests for another active subtree. MDS0 moves the directory because it erroneously determines that MDS1 is free, due to a a heartbeat and MDS synchronization problem. After the inefficient migration, MDS0 is underloaded and MDS1 is overloaded relative to the total cluster load.
+
+\subsubsection*{Aggressive migration}
+An aggressive migration is when a host moves too many resources in one interval. This rapid cluster re-balancing can make it difficult for a hill-climbing algorithm to incrementally improve cluster balance. Furthermore, a migration is aggressive if a more optimal resource granularity exists that would have improved balance - again the system loses the benefit that would have been gained with an optimal migration. Aggressive migrations occur when the system erroneously calculates ``how" many resources to move. 
+
+For example, in Figure~\ref{sep-dir_clients2_mds3_cpu_cpu}, the MDS0 host moves too many subtree resources at time 1 minute. In this case, MDS0 moves the directories because the load calculation erroneously determines that the parent directory was under equal load constraints. After the aggressive migration, MDS0 is underloaded relative to the total cluster load. 
+
+\subsubsection*{Worst case}
+These three types of migrations are symptoms of poor load balancing. They overload the receiving host and underload the sending host. With poor load balancing, performance is only crippled by the cost of migration in the best case. Unfortunately, in the worst case these migrations can combine to induce thrashing, where the system fails to make any progress because all efforts are spent on migrations. 
+
+For example, Figure~\ref{thrashing} shows a thrashing, 2 node metadata cluster. Two clients create 10,000 files in the same directory (20,000 files total). From time 0 - 9 minutes, the system continually moves the directory onto and off of MDS0. This is an example of an aggressive migration (moving too much) and an unnecessary migration (no balance improvement).  At time 9 minutes, the directory fragments and all content migrates to MDS1 while the directory object itself stays on MDS0. This is an example of an inefficient migration (host moves a resource to a suboptimal host). The cluster state never improves because the MDS are underloaded since the bottleneck is now the clients switching between target MDSs. 
+
+% The problem
+Although designed for proper balancing, the CephFS metadata cluster suffers from inaccurate and incomplete views of the host resources and activities. Each MDS has many resources  that affect migration, such as the network, cores and memory. Furthermore, events on the MDS affect migration. For example, in Figure~\ref{metadata-resources}, the grey node could be servicing many simultaneous requests (CPU-bound), the green node could be checkpointing its state RADOS (network-bound), the pink node could be managing many subtrees (memory-bound), and the magenta node could be processing other background jobs (CPU-bound). It may even be best to keep the  subtree on the current MDS because of caching. Since the metadata is already local to that MDS, we avoid a re-direction or a request to RADOS for the metadata. While the CephFS heuristics are a good start, they are still incomplete. 
+
+
+% The problem
+This technique fails to account for the MDS resources and activity. Each MDS has resources of its own that affect migration, such as the network, cores and memory. Furthermore, events on the MDS affect migration. For example, in Figure~\ref{metadata-resources}, the grey node could be servicing many simultaneous requests (CPU-bound), the green node could be checkpointing its state RADOS (network-bound), the pink node could be managing many subtrees (memory-bound), and the magenta node could be processing other background jobs (CPU-bound). It may even be best to keep the yellow subtree on the yellow MDS because of caching. Since the metadata is already local to that MDS, we avoid a re-direction or a request to RADOS for the metadata. 
+
+\begin{figure*}[tbh]
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering
+	\includegraphics[width=1\textwidth]{./figures/graphs/isolate/sep_dir_clients2_mds2_cpu_cpu.pdf}
+	\caption{Multiple MDSs are unstable.\label{unstable}}
+	\end{subfigure}
+	~
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/graphs/metrics/sep_dir_clients2_mds2_cpu_cpu.pdf} 
+	\caption{Forcing stable behavior.\label{stable}}
+	\end{subfigure}	
+	\caption{\textbf{Stabilizing the system}: mapping performance to behavior and system metrics is impossible if the system migrates subtrees too quickly (left). We force stable behavior by stopping the balancer when clients make requests to different MDSs (right).\label{unstable-stable}}
+\end{figure*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% STABILIZING THE SYSMTEM
+\section{Stabilizing the system}
+\label{results_stabilizing-the-system}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Before mapping performance to the selected metrics, we need to stabilize the system. Initially, we tried to associate a certain CPU utilization or cache hit rate to throughput, but the system made too many rapid migrations. For example, one of the results we got is shown in Figure~\ref{unstable}. There is so much happening in this curve, it is impossible to correlate any of the local metrics to global metrics.
+
+\subsection{Controlling the behavior}
+
+% The problem
+Simply letting the CephFS balancer run produces unstable behavior, as shown in Figure~\ref{unstable}. Before mapping performance to behavior and the selected metrics, we need to stabilize the system. To do this, we need to be able to stop balancing load when load splits to multiple MDSs. CephFS can be configured to stop balancing after a period of time  or a number of migrations - unfortunately, as the system runs we cannot tell where the resources (subtrees) are, what the MDSs are doing, or what the clients are doing. How do we stop balancing when load splits to two MDSs if we cannot see what the system is doing? 
+
+% Use tailplot to monitor the system while it is running
+Since the balancer does not behave the same every time, we had to instrument an online monitoring system to see the behavior in order to control it. We use tailplot to monitor the system while it is running. Tailplot produces real time plots of system activities by reading tab-delimited files. Scripts poll the system every 10 seconds and output MDS and client statistics to files. When we see the load split to the desired number of MDSs, we stop balancing. 
+
+
+\subsection{Checking program invariants}
+\begin{figure*}[tbh]
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering
+	\includegraphics[width=1\textwidth]{./figures/graphs/isolate/sep_dir_clients2_mds1_cpu_latency.pdf}
+	\caption{Checking recursive statistics.\label{recursive}}
+	\end{subfigure}
+	~
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds1_hybrid_no-rados_latency.pdf} 
+	\caption{Disabling recursive statistics.\label{nonrecursive}}
+	\end{subfigure}	
+	\caption{\textbf{Disabling recursive statistics}: a bug in CephFS increases average latency and instability as more files are added (left). Fixing the bug shows that the average latency for many create requests is about 2.5 milliseconds (right). \label{recursive-nonrecursive}}
+\end{figure*}
+
+% The problem
+The system performs poorly when is collects recursive statistics. Throughput is poor, latency is unpredictable, and the cache hit rate slows. Figure~\ref{recursive} shows the average latency of a single node metadata service, when clients create many files in the same directory. As more files are added, the average latency gets more unpredictable; near the end of the job, the latency becomes unstable, ranging to almost twice the average latency. Profiling the CPU reveals that 60\% of the time is spent checking recursive statistics. 
+
+% Disable recursive statiscs
+For correctness, CephFS supports checking directory statistics. It does this by recursing down the hierarchical namespace and calculating sizes, modification times, and other metadata. It ensures that the sum of all the subtree statistics matches the statistics at the root of the subtrees. As files are added to the system, this checking takes more and more time. Although we disabled this in the configuration, a bug in CephFS forced the system to continue collecting statistics. After fixing the bug, the performance stabilizes, as shown in Figure~\ref{nonrecursive} to an average latency of about 2.5 milliseconds. The performance anomaly between 10 and 14 minutes is explained in the next section. 
+
+\subsection{Provisioning enough storage}
+\begin{figure*}[tbh]
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds1_cpu_thruput.pdf}
+	\caption{Insufficient RADOS bandwidth.\label{no-rados}}
+	\end{subfigure}
+	~
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds1_hybrid_no-rados_thruput.pdf} 
+	\caption{Sufficient RADOS bandwidth.\label{rados}}
+	\end{subfigure}	
+	\caption{\textbf{Sufficient RADOS bandwidth}: with only 3 OSDs using disks, the performance is unpredictable and slow (left). Spinning up 6 OSDs and using SSDs, the performance is predictable and fast (right).\label{rados-no-rados}}
+\end{figure*}
+
+% The problem
+The system performs poorly when there is insufficient RADOS bandwidth. Throughput and client request rates slow and the average latency spikes. Figure~\ref{no-rados} shows the throughput of a single node metadata service for a create workload, when there are insufficient OSDs in the RADOS cluster. The job takes about 16 minutes and the throughput mysteriously drops between 10 and 14 minutes. The CPUs on the clients and the MDS are underutilized and all counters stop recording statistics. The RADOS performance counters reveal laggy OSD operations. 
+
+% Add more RADOS bandwidth
+As the MDS cluster services requests, the metadata is streamed to RADOS in the background. When requests start taking a long time, the MDSs marks the OSD operation as laggy. Figure~\ref{no-rados} uses a RADOS cluster with only 3 OSDs that use disks as backend storage. Figure~\ref{rados} uses a RADOS cluster with 6 OSDs that use SSDs as the backend - the throughput improves and stabilizes. As a result, the job is almost 10 minutes faster. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PERFORMANCE
+\section{Performance}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[tbh]
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds2_hybrid_no-rados_thruput.pdf}
+	\caption{Throughput of 2 MDS (stacked).}
+	\end{subfigure}
+	~
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds2_hybrid_no-rados_latency.pdf} 
+	\caption{Average latency of 2 MDS.}
+	\end{subfigure}	
+	\caption{\textbf{Requests match performance}: the client requests match the processing activity. Throughput and latency are stable and equal on each MDS. \label{performance-2MDS}}
+\end{figure*}
+
+First, we show how the performance maps to the behavior represented by the ``client activity curves". When clients are making requests to a specific MDS, we expect throughput and latency to increase on that MDS. Second, we use ``client activity curves" to explore our selected local metrics. We then tie the performance to certain CPU utilizations and cache hit rates.
+
+\subsection{Maps to behavior}
+% We want to see the affects on performance if we split to 1, 2, or 3 nodes
+As a sanity check, we correlate performance with the behavior of the client requests. Initial results show that client behavior matches the performance metrics. When clients issue requests to an MDS, that MDS's throughput improves. 
+
+When load is kept on 1 MDS, the job finishes in 15 minutes, processing 113 creates per second, and 460 tree creates per second. The figures from the previous sections show stable performance for 1 MDS, giving us an idea of what kind of throughput (Figure~\ref{rados}) and latency (Figure~\ref{nonrecursive}) we can expect if we keep all the metadata on 1 MDS. Throughput sits at around 5000 metadata requests per second and latency hovers around 0.55 millisecond. 
+
+When load is split to 2 MDSs, the job finishes in 12 minutes, processing 133 creates per second, and 435 tree creates per second. Figure~\ref{performance-2MDS} shows stable performance when load is split evenly amongst 2 MDSs. The total MDS cluster throughput ({\it i.e.} adding the throughput of all MDSs) improves to about 6000 metadata requests per second, while latencies stay around 0.4 milliseconds. 
+
+% What does this mean
+\subsection{Maps to local metrics}
+\begin{figure*}[tbh]
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds1_hybrid_no-rados_cpu.pdf}
+	\caption{CPU utilization for 1 MDS.}
+	\end{subfigure}
+	~
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds2_hybrid_no-rados_cpu.pdf} 
+	\caption{CPU utilization for 2 MDSs.}
+	\end{subfigure}	
+	\caption{\textbf{Mapping CPU utilization to performance}: the threshold for the CPU utilization will be somewhere around 20\% per-MDS. Relating this to throughput leads us to believe that the 1 MDS setup overloads the MDS.\label{metrics-cpu}}
+\end{figure*}
+
+\begin{figure*}[tbh]
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds1_hybrid_no-rados_chr_nomisses.pdf} 	
+	\caption{Cache hit rate for 2 MDSs.}
+	\end{subfigure}
+	~
+	\begin{subfigure}[H]{0.5\textwidth}
+	\centering	
+	\includegraphics[width=1\textwidth]{./figures/graphs/no-rados/sep_dir_clients2_mds2_hybrid_no-rados_chr_nomisses.pdf}
+	\caption{Cache hit rate for 1 MDS.}
+	\end{subfigure}	
+	\caption{\textbf{Mapping cache hit rate to performance}: a single MDS gets a higher cache hit rate than two MDSs because it receives more requests. Distributing load gets less hits per second but better performance. \label{metrics-chr}}
+\end{figure*}
+
+% Affects on performance
+Now that we see stable performance, we turn out attention to mapping these performance metrics to the local metrics. Figure~\ref{metrics-cpu} shows the CPU utilization and for the 1 and 2 MDS clusters. For 1 MDS, the CPU utilization hovers around 21\% and for 2 MDSs, the CPU utilization sits at 18\%. We predict the threshold should be set somewhere between these values, because 1 MDSs may be over utilized, since the throughput does not reach the overall throughput of the 2 MDS cluster. 
+
+% 
+The cache hit rate is the number of hits per second. We considered using cache hits per misses, but this metric ignores the total number of hits/misses; a hits per misses rate of 1 can either represent 1 hit and 1 miss or 1000000 hits and 1000000 misses. We also considered absolute cache hits, but this does scaling does not give us a notion of the metric over time.
+
+Figure~\ref{metrics-chr} shows the cache hit rate for both setups. For 1 MDS, the cache hit rate is very high, at over 6000 hits per second. For 2 MDSs, the total cache hit rate is higher, but each  MDS only gets about 4000 hits per second. We predict that a higher cache hit ratio leads to better performance and that the performance of the single MDS setup is overutilized. 
+
+% What this means
+These experiments assert our conclusion that distributing load decreases CPU utilization and cache hit rate. We learn that keeping the metadata on one MDS does not necessarily improve performance; we predict that the high CPU utilization is limiting performance. These experiments show how a certain cache hit rate and CPU utilization can help the balancer predict the expected performance. 
+
+
+
+%
+%\begin{figure}
+%	\centering
+%	\includegraphics[width=1\textwidth]{./figures/graphs/load/sep_clients2_v1_problem.png} 
+%	\caption{\label{sep_clients2_v1_problem}}
+%\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%\subsection{Unnecessary Migrations}
+%\subsection{Aggressive Migrations}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PROBLEM: INCOMPLETE HEURISTICS
+%\section{Problem: Incomplete Heuristics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%\subsection{Ignores per-MDS Loads}
+%\subsection{Ignores Cost of Migration}
+%\subsection{Hard Coded Weights}
+%\subsection{Limited Load Parameters (CPU or Request)}
+%
+%
+%Figure~\ref{load_creates_2mds_2client_v1}. Figure~\ref{cpu_creates_2mds_1client}. Figure~\ref{load_creates_2mds_2client_v2}.
+%
+%
+%\begin{figure}
+%	\centering
+%	\includegraphics[width=1\textwidth]{./figures/graphs/load/creates_2mds_2client_v2.png} 
+%	\caption{\label{load_creates_2mds_2client_v2}}
+%\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PROBLEM 2: INACCURATE READINGS
+%%\section{Problem 2: inaccurate readings}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{figure*}[tbh]
+%	\begin{subfigure}[H]{0.5\textwidth}
+%	\centering
+%	\includegraphics[width=1\textwidth]{./figures/graphs/load/creates_2mds_2client_v0.png} 
+%	\caption{\label{load_creates_2mds_2client_v0}}
+%	\end{subfigure}
+%	~
+%	\begin{subfigure}[H]{0.5\textwidth}
+%	\centering	
+%	\includegraphics[width=1\textwidth]{./figures/graphs/load/creates_2mds_2client_v1.png}
+%	\caption{\label{load_creates_2mds_2client_v1}}
+%	\end{subfigure}	
+%	\caption{}
+%\end{figure*}
+%Figure~\ref{load_creates_2mds_2client_v0}. Figure~\ref{load_creates_2mds_2client_v1}. 
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PROBLEM 3: INACCURATE READINGS
+%%\section{Problem 3: inexplicable behavior}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{figure*}[tbh]
+%	\begin{subfigure}[H]{0.5\textwidth}
+%	\centering
+%	\includegraphics[width=1\textwidth]{./figures/graphs/cpu/creates_2mds_1client.png} 
+%	\caption{Why does the CPU utilization increase?\label{cpu_creates_2mds_1client}}
+%	\end{subfigure}
+%	~
+%	\begin{subfigure}[H]{0.5\textwidth}
+%	\centering	
+%	\includegraphics[width=1\textwidth]{./figures/graphs/chr/creates_2mds_1client.png}
+%	\caption{\label{chr_creates_2mds_1client}}
+%	\end{subfigure}	
+%	\caption{}
+%\end{figure*}
+%Figure~\ref{cpu_creates_2mds_1client}. Figure~\ref{chr_creates_2mds_1client}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PROBLEM 4: 
+%\section{Problem 4: ignores MDS states}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% What I've done
+%We have exposed the problem using \texttt{mdtest}, a benchmark for HPC. 
+
+
+
+
+%We load distributed txo only 3 of the nodes and higher utilization. The performance is about 100 seconds faster, which suggests that balancing load should be done for higher utilizations. 
+
+
+%We set up a simple 5-node metadata cluster and changed the  We can see how load is migrated, where resources migrate to, and how long it takes. Our next experiment shows how a simple round robin technique may not be sufficient, as we (1) burden one of the metadata servers with other jobs, (2) force offloading to go to an off rack metadata server, (3) force offloading to go to a node with cold caches, (4) change the migration thresholds to show that when you move something it really matters. 
+
+%Using one monitor and 5 metadata servers, we do a metadata intensive test and show the system can adapt to different workloads. We show how SSDs, HDDs, rack-locality, link locality, cache size, and utilization all make differences in deciding where to move data.
+%
+%Also, we show how the different thresholds for fragmentation affect performance. Moving early and often depends on how long it takes to move something - which depends on the above paragraph. We show that contrary to previous assumptions - migrating directory subtrees is not slow because (1) inodes don't hold data locations and (2) inodes are stored directly in directory entries.
+
+
+

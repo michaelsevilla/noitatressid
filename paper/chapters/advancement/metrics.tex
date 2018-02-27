@@ -1,0 +1,136 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% METRICS
+\chapter{Metrics}
+\label{metrics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Why we care
+Modeling the system requires an intimate understanding of the state of the system. As metrics for measuring the state of system, we measure resource utilization, system-specific event counts, and performance. The resource and system-specific metrics characterize the state of each MDS (local state), while the performance metrics reflect the overall behavior of the system (global state). In the next chapter, we show how these resource and system-specific metrics are used to achieve the desired overall performance and global behavior.
+
+% Look forward
+In the following sections, we discuss the resource, system-specific, and performance metrics we can measure and optimize. We show how the resource metrics show how much load an MDS has and how the system-specific metrics show what the MDS is doing. We also show how the metrics are dependent on each other. Finally, we map local resource metrics to global performance and set the stage for optimizing system-specific metrics for global performance. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PERFORMANCE METRICS
+\section{Performance metrics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Why we care about metrics
+We choose throughput and latency as performance metrics for judging the success of the system. These metrics describe the overall behavior and performance of the system. These measurements are the metrics we want to optimize for when we migrate resources. 
+
+% What is throughput
+The throughput is the rate of processing metadata, measured in metadata operations per second. Table~\ref{metadata-requests} lists the metadata requests that have an affect on performance. Also included is a metadata request type breakdown for two sample workloads. We ignore data IO events, like \texttt{read()} and \texttt{write()} operations, because we want to isolate the performance of the MDS cluster instead of the underlying storage system (RADOS). We collect these measurements using the CephFS performance counters. Other command-line tools, like mdtest and iozone report overall file system performance, instead of only metadata operations. 
+
+\begin{table}
+	\centering
+	\caption{Performance metrics: each metadata request can be classified by type. The ``Example \#" columns give a count of each metadata request for two workloads.
+	{\tiny * Node: attributes may include things like compressed, append only, etc.}\label{metadata-requests}}
+	\begin{ssp}
+	\begin{tabular}{ 
+					>{\centering}m{1.8cm} || 
+					>{}m{4cm} | 
+					>{\centering}m{4cm} |
+					>{\centering}m{4cm}}					
+					& description
+					& Example 1: \\create 100,000 files
+					& Example 2: \\re-compile kernel
+					 \tabularnewline \hline\hline
+	\multicolumn{1}{r||}{\texttt{getattr()}}
+					& get attribute 
+					& 4
+					& 22962
+					\tabularnewline						
+	\multicolumn{1}{r||}{\texttt{setattr()}}
+					& set file attribute
+					& 3
+					& 0
+					\tabularnewline								
+	\multicolumn{1}{r||}{\texttt{readdir()}}
+					& read directory entry
+					& 0
+					& 524	
+					\tabularnewline							
+	\multicolumn{1}{r||}{\texttt{lookup()}}
+					& lookup a directory entry
+					& 199615
+					& 290974
+					\tabularnewline							
+	\multicolumn{1}{r||}{\texttt{mkdir()}}
+					& create a directory
+					& 3
+					& 304
+					\tabularnewline															
+	\multicolumn{1}{r||}{\texttt{create()}}
+					& create or open a file
+					& 100000
+					& 3670		
+					\tabularnewline	
+    \end{tabular}
+	\end{ssp}    
+\end{table}
+% What is latency
+The latency is the response time of a client's metadata requests, measured in milliseconds. This metric provides a more holistic view of the system, since it encompasses the time to perform data IO to/from RADOS. If an MDS knows it is the only authority on a subtree, CephFS sends an early reply, which reduces latency. This behavior is encompassed in the latency measurements. To isolate the latency of metadata, we limit our benchmarking to metadata intensive workloads. We collect these measurements using the CephFS performance counters, which track the number of replies and the sum of the latencies for all requests. 
+
+% Clients may want different types of performance
+These metrics are often at odds. For example, when many clients create files in the same directory the user expects a longer latency because of the requested amount of work. In this case, the user wants high throughput so the job finishes as fast as possible. On the other hand, if a single client requests the metadata for a single directory, the user expects a shorter latency at the expense of throughput for other concurrent requests. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% HOST RESOURCE METRICS
+\section{Host resource metrics}
+% - resources that matter (memory, cpu, IO)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% What are the resources; what do they reflect about the local state of the system
+A host resource is a hardware component that an MDS uses to process a job, such as CPU, IO, network, and memory. Host resource utilization is important for properly balancing load because it represents how much load each MDS is handling. Essentially, this metric indicates how much work the MDS is doing. By understanding how much work an MDS is doing, the balancer can determine, ``when" to move resources, ``where" to move resources, and ``how much" to move. Figure~\ref{metadata-resources} shows where each resource is in the MDS cluster. It's important to note that a host resource, unlike the subtree resources we discussed earlier, cannot migrate to different MDSs. Although we predict that CPU, IO, network, and memory will {\it eventually} have the capability to migrate, in this work we constrain them to their respective MDS. 
+
+\begin{figure*}[tbh]
+\centering
+	\includegraphics[width=0.7\textwidth]{./figures/figures/metadata-resources.png} 
+	\caption{\textbf{Metadata resources}: host resource (CPU, I/O, memory, and network)  represent the local state of each MDS. These local metrics must be aggregated to predict the overall behavior and performance.~\label{metadata-resources}}
+\end{figure*}
+
+% What CPU shows
+The CPU utilization reflects how much computation work a server is doing~\cite{shvachko:login2012-hdfs-scalability}. A server with overloaded cores cannot process requests at the same rate and it becomes more susceptible to hardware malfunctions, like clock throttling~\cite{sevilla:discs2013-framework}. A high CPU utilization does not always imply an overloaded system, as a system may be operating at just under its capacity. 
+
+% What IO shows
+The IO bandwidth utilization reflects how much a server is storing. An overloaded IO path reduces the efficiency of the CPU cycles, since more time is spent waiting for IO~\cite{sevilla:lspp2014-supmr}. It also prevents the server from persisting data or state to storage. The negative effects of a high IO bandwidth utilization can be mitigated by striping data or upgrading to a faster medium ({\it e.g.}, replace disk with flash). 
+
+% What network activity shows
+The network bandwidth utilization reflects how much a server is communicating with its neighbors. This communication could be transmitting data or state. Similar to an overloaded IO path, an overloaded network path costs CPU cycles and prevents the system from communicating with its neighbors. This has the potential to bottleneck the entire system, if the system relies on polling, such as a heartbeat. To reduce the saturation, the connection could be time or ethernet multiplexed. 
+
+% What memory activity shows
+The memory utilization reflects how much data a server is managing~\cite{thusoo:sigmod2010-facebook-infrastructure}. With more data in memory, it takes longer to search for objects and it is more likely that pages will be swapped to disk. This extra activity slows performance to a crawl~\cite{wulf:sigarch1995-memory-wall}. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SYSTEM METRICS
+\section{System metrics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%- how this will translate to responsiveness/thruput
+%- what are the affects of the metrics we chose
+The resource metrics describe the per-MDS load but fails to encapsulate the MDS's activity. The system-specific metrics indicate what the MDS is trying to do. Figure~\ref{metadata-resources} shows where the local resources (CPU, I/O, network, and memory) are in relation to the whole system. In this section, we map these local resource metrics to local behavior, specific to CephFS. The balancer can optimize these system-specific metrics to achieve the overall strategy.
+
+% How we collect it
+Each of the system-specific metrics map directly to a CephFS performance counter. Performance counters are variables that get incremented in the source code. We envision only collecting a subset of the counters in our final system, since maintaining events for all events could be costly. 
+
+\subsection*{CPU \(\mapsto\) request activity}
+% How CPU utilization translates to CephFS activity
+% hsreq, hcsess, dcreq, dsreq, "objecter", op laggy
+The CPU activity gives us an idea of how many metadata requests the MDS is processing. The number of metadata requests can be measured by type ({\it e.g.}, create, stat, etc.) or behavior ({\it e.g.}, laggy requests). Counting the different types metadata requests indicates how many context switches an MDS is doing between operations and subtrees. Counting the number of poorly behaving or queued requests indicates how overloaded an MDS is.
+
+\subsection*{I/O \(\mapsto\) debug, swap activity}
+% How IO bandwidth utilization translates to CephFS activity
+% tick interval, dirstat min interval
+The I/O activity gives us an idea of much state the MDS is retaining. Available metrics for IO bandwidth utilization include the size of the debug logs or the swap space usage. Measuring the size of the debug logs indicates how many events the MDS is processing - an idle MDS will not be debugging anything. The size of the swap space indicates how much memory pressure the metadata and its data structures are causing. The IO bandwidth can be saturated if the MDS is logging too many events, making too many state changes, or writing too many debug messages.
+
+\subsection*{Network \(\mapsto\) journal, communication activity}
+% How network bandwidth utilization translates to CephFS activity
+% beacon interval, beacon grace, session timeout, reconnect timeout
+The network activity gives us an idea of how much event data is being flushed and how much state is being exchanged across the cluster. Metadata journals, which maintain consistency and fault tolerance, are streamed into RADOS as objects. To monitor how much journal data is flushed to RADOS, the MDS can collect the number of connections, journal events, RADOS operations, laggy RADOS operations, and throttled operations. To monitor how much an MDS is communicating with other MDSs, the MDS can collect the number of throttled dispatch messages or the number of metadata management requests. 
+
+\subsection*{Memory \(\mapsto\) subtrees, cache activity}
+% How memory utilization translates to CephFS activity
+The memory activity gives us an idea of both the type of subtrees the MDS is managing and the locality of the metadata. If the MDS is managing many subtrees or large subtrees, the memory bandwidth and space can be saturated. On the other hand, if the MDS is managing many subtrees or large subtrees, it has a higher probability of serving data to a client request instead of forwarding it to another MDS. MDS subtree performance counters, such as adding inodes, directories, and capabilities supply metrics for the maintenance of subtrees.  MDS memory performance counters, such as the counters for the heap, malloc, or buffer indicate how much memory is being allocated for MDS activity. 
+
+% What cache hit rate shows
+The MDS cluster acts as a cache over the persistent metadata stored in RADOS. The MDS path traversal counters show how much locality the MDS is getting for the incoming metadata workload. There are two types of cache misses: (1) when the request must be forwarded to another MDS or (2) when the request invokes a fetch from RADOS. The cache hit rate shows us how much locality we are getting. Both types of misses incur latency, as can be modeled by:
+\[\text{latency} = t_c * P_c + t_r * (1 - P_c)\] 
+
+

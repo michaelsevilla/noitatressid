@@ -1,14 +1,6 @@
 \section{POSIX IO Overheads}
 \label{sec:posix-overheads}
 
-\begin{figure}[tb] \centering
-\includegraphics[width=1\linewidth]{./graphs/overhead-creates.png}
-\caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-compile/visualize/viz.ipynb}{source}]
-For the CephFS metadata server, create-heavy workloads ({\it e.g.},
-\texttt{untar}) incur the highest disk, network, and CPU utilization because of
-consistency/durability demands.}\label{fig:overhead-creates}
-\end{figure}
-
 In our examination of the overheads of POSIX IO we benchmark and analyze
 CephFS, the file system that uses Ceph's object store (RADOS) to
 store its data/metadata and a metadata server cluster to service client requests

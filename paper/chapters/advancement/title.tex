@@ -1,0 +1,40 @@
+% Title Stuff
+\title{Load Balancing using Resource Migration\\in the CephFS Metadata Cluster}
+\author{Michael A. Sevilla}
+\degreeyear{2014}
+\degreemonth{June}
+\degree{ADVANCEMENT TO CANDIDACY}
+\chair{Professor Scott Brandt}
+\committeememberone{Professor Carlos Maltzahn}
+\committeemembertwo{Professor Ike Nassi}
+\committeememberthree{Dr. Sam Fineberg}
+\numberofmembers{4} %% (including chair) possible: 3, 4, 5, 6
+\deanlineone{Tyrus Miller}
+\deanlinetwo{Vice Provost and Dean of Graduate Studies}
+\deanlinethree{}
+\field{Computer Science}
+\campus{Santa Cruz}
+
+% Pre-Chapter Stuff
+\begin{frontmatter}
+	\maketitle\copyrightpage\tableofcontents\listoffigures\listoftables
+	\begin{abstract}
+		Migrating resources is a useful tool for balancing load in a distributed system. Today's systems can already virtualize memory and the ability to migrate other resources, such as CPU, disks, and network, is fast approaching. When we finally have the ability to migrate different resources, how do we know when and where to move them? Such migration will depend on the utilization, configuration, and workload, but how will we weight these factors to design robust, guaranteeable systems? In this work, we propose using metadata management as a substrate for exploring different heuristics for resource migration and load balancing. This work will address general load balancing topics in the context of metadata management, such as which metrics are important, how to quantify performance, which metrics should be optimized for, and which heuristics are successful. We use the Ceph file system as a platform for attacking the metadata management problem because it was built with locality in mind and the tools for resource migration and hotspot detection are already implemented.
+	\end{abstract}
+	%\begin{dedication}
+	%	\null\vfil
+	%	{\large
+	%	\begin{center}
+	%		To myself,\\\vspace{12pt}
+	%		Perry H. Disdainful,\\\vspace{12pt}
+	%		the only person worthy of my company.
+	%	\end{center}}
+	%	\vfil\null
+	%\end{dedication}
+	%\begin{acknowledgements}
+	%	I want to ``thank'' my committee, without whose ridiculous demands, I
+	%	would have graduated so, so, very much faster.
+	%\end{acknowledgements}
+\end{frontmatter}
+
+

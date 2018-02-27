@@ -1,0 +1,23 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BACKGROUND
+\chapter{Background}
+\label{background}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% EXAMINING THE METADATA MANAGEMENT PROBLEM
+%\section{Examining the Metadata Management Problem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Resource balancing is important; why I'm working on it
+%Understanding the effects of migrating resources is an important part of load balancing. Today's systems can already virtualize memory and the ability to migrate other resources, such as CPU, disks, and network, is fast approaching. When we finally have the ability to migrate different resources, how do we know when and where to move them? Such migration will depend on the utilization, configuration, and workload, but how will we weight these factors to design robust, guaranteeable systems? In this work, we propose using metadata management as a substrate for exploring different heuristics for resource migration and load balancing. We hypothesize that an effective metadata management strategy will also depend on the utilization, configuration, and workload.
+%
+%% Metadata management is a medium for load balancing
+%POSIX-compliant systems are important for legacy software and users accustomed to hierarchical file systems. Unfortunately, file metadata is highly accessed~\cite{roselli:atec2000-FS-workloads} and does not scale for sufficiently large systems in the same way that read and write throughput do~\cite{abad:techreport2012-fstrace, abad:ucc2012-mimesis, alam:pdsw2011-metadata-scaling, weil:osdi2006-ceph}. File metadata is very different from regular data; the need to distribute it amongst many nodes is not a result of its size, but its popularity. Furthermore, metadata access must remain fast, making it difficult to apply data transform techniques~\cite{leung:atc2008-nfs-trace}. Maintaining a file system hierarchy and file attributes is notoriously difficult in high-performance computing (HPC), where checkpointing behavior induces ``flash crowds" of clients simultaneously opening, writing, and destroying files in the same vicinity  ({\it e.g.}, a directory).
+%
+%
+%% Why metadata management is a hot topic now?
+%%	- ties to open source file systems?
+%%	- industry wants to migrate for file system based functionality instead of objs?
+%The ``big data" era has rendered proven metadata management techniques insufficient for metadata-intensive workloads. For example, Google had to add support for multiple masters to manage metadata because today's workloads often deal with many small files ({\it e.g.}, log processing) and a large amount of simultaneous clients ({\it e.g.}, MapReduce jobs)~\cite{mckusick:acm2010-gfs-evolution}. Facebook had to abandon NFS in favor of an object store for storing photos because of metadata inefficiencies: file system metadata ({\it e.g.} permissions) are not used with photos and file access required multiple disk seeks~\cite{beaver:osdi2010-haystack}. Suddenly, the metadata problem, once reserved for HPC, has found its way into large data centers.
+%
+%We use the Ceph file system (CephFS) as a platform for attacking the metadata management problem because it was built with locality in mind and the tools for resource migration and hotspot detection are already implemented.
+

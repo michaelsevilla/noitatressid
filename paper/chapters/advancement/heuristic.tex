@@ -1,0 +1,307 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% HEURISTICS
+\chapter{Heuristic Exploration}
+\label{heuristic}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% What is a heuristic
+A heuristic is a an experience-based technique for solving problems, learning behavior, and discovering new models. The goal of this work is resolve the trade-offs of the metrics discussed in Chapter~\ref{metrics} using different resource migration techniques. We chose these measurements because of their simplicity and their sufficiency in characterizing the behavior of the system. 
+
+% Outline of this section.
+In this section, we outline the setup steps for creating a platform for exploring resource migration. First, we map the local metrics to global performance. Next, we identify which metrics are the most important for getting the best performance. Then we model our system by weighting resources. Finally, we discuss what strategies we can use to optimize the important metrics. These heuristics will resolve different tradeoffs. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MAPPING LOCAL TO GLOBAL
+\section{Mapping local to global metrics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Motivation
+The local metrics can help the balancer predict the effect on the global system performance. Returning to Figure~\ref{metadata-resources}, we can see how these host resource and system-specific metrics should affect where we migrate the yellow subtree. The grey node could be servicing many simultaneous requests (CPU-bound), the green node could be checkpointing its state RADOS (network-bound), the pink node could be managing many subtrees (memory-bound), and the magenta node could be processing other background jobs (CPU-bound). It may even be best to keep the yellow subtree on the yellow MDS because of caching. Since the metadata is already local to that MDS, we avoid a re-direction or a request to RADOS for the metadata. 
+
+\subsection*{Host resources: limit performance}
+% What does over-utilization resource mean?
+Over-utilized host resources limit performance. In this section, we look at each host resource and explain how throughput and responsiveness will be limited if the resource is over-utilized; we set the host resource utilization as a threshold and, in the next section, we try different distributed systems metrics, such as locality or distribution.  Table~\ref{table-overutilized} shows the relationship between host resource utilizations and global performance. 
+
+% We know what host resource utilization means
+This section is based on well-known system behaviors and best practice strategies. As opposed to mapping distributed systems strategies to performance, matching the host resources to performance is straightforward to reason about. The behavior of CPUs, memory, I/O, and network are well-understand and there are solutions for mitigating the bottlenecks. It is also understood that over-utilizing any of these resources leads to poor performance. 
+
+\begin{table}
+	\centering
+	\caption{Host resource metrics: hardware an MDS uses to complete a task will affect the balancer's decisions. If any of these resources are over-utilized, the corresponding performance will suffer. \label{table-overutilized}}
+	\begin{ssp}	
+	\begin{tabular}{ 
+					>{\centering}m{1.5cm} || 
+					>{}m{6cm}}					
+					performance
+					& \centering over-utilized resource
+					 \tabularnewline \hline\hline
+	\multicolumn{1}{r||}{throughput \(\downarrow\)}
+					& CPU, I/O bandwidth, Memory
+					\tabularnewline
+	\multicolumn{1}{r||}{responsiveness \(\downarrow\)}
+					& CPU, Network bandwidth, Memory
+					\tabularnewline																
+    \end{tabular}
+  	\end{ssp}	    
+\end{table}
+
+% What is an overloaded CPU
+An overloaded CPU limits both throughput and latency. An over-utilized CPU cannot process requests at the same rate that the requests are arriving. As a result, requests get queued up - in the worst case, the CPU can throttle to reduce heat~\cite{sevilla:discs2013-framework}. When this happens, the metadata operations per second will max out at the processing rate of the CPU. Latency will also be poor; if \(n\) clients request from the same MDS at the same time, the MDS will process the requests sequentially. If a single request takes time \(t_r\), in the worst case the time, \(t\), for a single client to get a response will be: \(t = n \times t_r\). Alternatively, if the clients request from different MDSs, requests can be processed in parallel. If all requests go to a different MDS, (an optimistic scenario), the time for a single request in the worst case would be the time to process the request. 
+
+% What is overloaded I/O
+A saturated I/O path reduces throughput. The MDS cannot process as many requests per second because CPU cycles are wasted MDS debugging and logging events. Latency remains unaffected, since processing a request never interacts with the disk. To reduce the saturation, we can move the journaling and logging to separate disks or to faster mediums. We do not choose IO bandwidth as a metric for our model because it is not in the critical path of our system, since metadata is stored in memory or RADOS. 
+
+% What is overloaded network
+A saturated network can drastically affect latency, since it takes longer for responses to travel over the wire. The number of connections and management messages will increase, and more CPU cycles will be spent on traffic control and network communication (wait I/O). Unless client requests come less frequently, throughput will remain unaffected, since the MDS can still process requests. To reduce the saturation, we can more network ports or time multiplex across different ethernet ports.
+
+% What is overloaded memory
+Overloaded memory limits both throughput and latency. High memory pressure results in slower execution times because more data must be scanned and because pages get spilled to the swap space on disk. As a result, the MDS cannot process as many requests per second and it takes longer for operations to complete. 
+
+\subsubsection*{Selected metric: CPU utilization}
+% What did we choose
+We choose CPU utilization as the threshold metric for the host resources. It indicates how overloaded each MDS is and affects both throughput and latency.  More specifically, we use CPU \texttt{user}-space utilization and cache hit rate as the metrics for determining the current resource utilization. The CPU utilization gives an indication of how overloaded the server is and the cache hit rate gives an indication of how well the memory is being utilized. 
+
+% What we didn't choose
+We choose CPU utilization instead of a running average of the CPU utilization ({\it e.g.}, CPU load) because, although it normalizes random utilization spikes, its poor accuracy prevented us from getting a clear characterization of behavior. IO bandwidth utilization shows how much MDS state is being logged; it does not show what that state is or what the MDS is actually doing. The events that cause saturate network bandwidth utilization do not happen frequently enough for them to consistently affect load balancing. Memory utilization and examining the subtree characteristics suffers many of the same issues as IO bandwidth utilization - we can see activity but we can't see what is actually being stored or how it is being utilized. Network bandwidth is a poor metric because the journals indicate nothing about the workload, so it would be difficult to learn off it. The communication with other MDSs is not a good metric because excessive communication is a result of poor balancing, not really a cause. I/O bandwidth is a poor metric because debug level can be adjusted in the configurations files and they are not really part of the system. Finally, memory utilization is a poor metric because our use-cases do not deal with large metadata sizes - instead, they deal with popular metadata. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Optimization metric}
+% - optimize system metric
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% What does system-specific events show us?
+We predict that maximizing or minimizing system-specific events can enhance performance. For example, minimizing the communication by optimizing the number of RADOS connections will improve performance. In this section, we look at how the system-specific events can be used in a general load balancing strategy. Table~\ref{table-system-specific} shows how optimizing for different system metrics can implement different heuristics.We also explain how counts of system-specific events can indicate positive behavior, leading to good throughput and responsiveness. 
+
+% We don't know what system-specific events means
+As opposed to the well-known utilization behaviors, we do not know which strategy will produce the best performance. Understanding how different strategies affect performance is the main contribution of this work.
+
+\subsection{Maximize locality}
+Keeping more data or load local to a node lets a single server do more work. In our case, maximize locality can improve performance by optimizing request locality, request target locality, and efficiency of communication. We can use the following strategies to improve locality:\\
+
+% What is maximizing request locality
+\noindent\textbf{Maximize request locality}: 
+\begin{itemize}
+	\item[] Keeps the same types of requests on the same MDS. As a result, MDSs do not have to worry about the activity of its neighbors. For example, if an MDS is in charge of all \texttt{write()} requests, it does not have to maintain constancy with the rest of the cluster. As a metric, the MDS can monitor the number of metadata request types. Optimizing this metric could improve performance because MDSs can respond to clients and service operations faster since they work independently.
+\end{itemize}
+
+% What is maximizing request target locality
+\noindent\textbf{Maximize request target locality}:
+\begin{itemize}
+	\item[] Keeps the destination subtree of the requests on the same MDS. As a result, MDSs can cache information instead of asking its neighbors to service requests. MDSs can also relax consistency over the data it manages, since it owns more of the subtree. As a metric, the MDS can monitor the number of metadata cache hits. Optimizing this metric could improve performance because MDSs can respond to clients and service operations directly from their cache.
+\end{itemize}
+
+% What is minimize communication
+\noindent\textbf{Minimize communication}: 
+\begin{itemize}
+	\item[] Reduces the messages and state passed amongst servers. As a result, the network is less utilized and MDSs spend less CPU cycles communicating state to their neighbors. As metrics, the MDS can monitor the number of RADOS connections and the number of management messages. Optimizing these metrics could improve performance because MDSs devote more resources to responding to clients and servicing operations.
+\end{itemize}
+
+\subsection{Maximize distribution}
+Distributing data or load across the cluster lets more nodes do less work. In our case, maximizing distribute can improve performance by optimizing load per server in the form of amount of data/events, the state to log, or events to persist. We can use these strategies to improve distribution:\\
+
+% What is minimizing data/events per server
+\noindent\textbf{Minimize data/events per server}: 
+\begin{itemize}
+	\item[] Spreads requests or subtrees across the cluster. As a result, the CPU utilization goes down on each MDS. As metrics, the MDS can monitor the size of the journal, the number of queued metadata requests per server, and the size or number of subtrees. Optimizing these metrics could improve performance because it's less likely that the MDSs are overloaded.
+\end{itemize}
+
+% What is minimizing state to log per server
+\noindent\textbf{Minimize state to log per server}: 
+\begin{itemize}
+	\item[] Spreads logging to multiple nodes. As a result, traffic is sent over multiple connections and I/O is spread over multiple disks. As metrics, the MDS can monitor the size of the journal and the debug log size. Optimizing these metrics could improve performance because data is multiplexed over multiple connections and I/O is not bottlenecked on each individual MDS.
+\end{itemize}
+
+% What is minimizing event persistence per server
+\noindent\textbf{Minimize data to persist per server}: 
+\begin{itemize}
+	\item[] Spreads data steaming to multiple nodes. As a result, data is sent over multiple connections. As metrics, the MDS can monitor the number of throttled or laggy RADOS requests. Optimizing these metrics could improve performance because data is multiplexed, allowing 
+RADOS to fully parallelize operations.
+\end{itemize}
+
+
+\subsubsection*{Selected metric: request target locality}
+% What did we choose
+We choose cache hit rate as the optimization metric for the system-specific events. It represents the benefit of keeping subtrees local and shows how beneficial the workload is. To do this, the balancer will maximize the number of cache hits in the system. Using the other system-specific metrics are left as future work, once we figure out what the true performance indicates are.
+
+\begin{table}
+	\centering
+	\caption{System-specific metrics: migration heuristics will try to optimize a subset of these metrics. Resource utilization metrics indicate how overloaded a single MDS is; system-specific (CephFS) metrics indicate what the MDS is trying to do; performance metrics indicate how well the system is doing. The aggregate resource utilization and system-specific metrics can be mapped to performance. \label{table-system-specific}}
+	\begin{ssp}	
+    	\begin{tabular}{ 
+					>{\centering}m{0.5cm} 	|| 
+					>{}m{6cm}				|
+					>{}m{5cm}				
+					}
+					performance
+					& \centering distributed systems
+					& \centering metric
+					 \tabularnewline \hline\hline					
+	\multicolumn{1}{r||}{responsiveness \(\uparrow\)}
+					& minimize communication 
+					& \# RADOS connections
+					\tabularnewline
+	\multicolumn{1}{r||}{}
+					&
+					& \# management messages 
+					\tabularnewline					
+	\multicolumn{1}{r||}{}
+					& minimize events per server
+					& size of journal
+					\tabularnewline		
+	\multicolumn{1}{r||}{}
+					& 
+					& \# queued metadata requests
+					\tabularnewline
+	\multicolumn{1}{r||}{}
+					& minimize persistent storage events
+					& \# throttled RADOS requests
+					\tabularnewline
+	\multicolumn{1}{r||}{}
+					& 
+					& \# laggy RADOS requests
+					\tabularnewline
+	\multicolumn{1}{r||}{throughput \(\uparrow\)}
+					& maximize request locality 
+					& \# of metadata request types
+					\tabularnewline																		
+	\multicolumn{1}{r||}{}
+					& 
+					& \# metadata cache hits
+					\tabularnewline						
+	\multicolumn{1}{r||}{}
+					& minimize amount of data per server
+					& size of subtrees
+					\tabularnewline																		
+	\multicolumn{1}{r||}{}
+					& 
+					& \# of subtrees
+					\tabularnewline																			
+	\multicolumn{1}{r||}{}
+					& minimize amount of state to log
+					& debug log size
+					\tabularnewline						
+    \end{tabular}
+	\end{ssp}	    
+\end{table}
+
+
+\section{Weight metrics}
+% Why weight metrics?
+Weighting the host resource and system-specific event metrics forms a more accurate model of the system. This requires a solid understanding of how each metrics relates to the overall performance. For example, we predict that there is a sweet spot for CPU utilization that reside just below over-utilization. 
+
+% This is hard
+Of course, weighting resources is a difficult task; many systems leave this as future work. For example,~\cite{wood:nsdi07-sandpiper} weights the resources evenly: \[\text{load} = \frac{1}{1 - \text{CPU}} * \frac{1}{1 - \text{network}} * \frac{1}{1 - \text{memory}}\]
+
+\noindent and~\cite{vmware-drs,gulati:hotcloud2011-cloud-resource-management} weights resource allocations evenly:
+\[\text{allocation} = \frac{\sum \text{current allocations}}{\text{server capacity}}\]\
+\noindent In addition to being inaccurate, these weightings are statically defined. 
+
+% Finding these weights:
+Finding the correct weights for each metric can be done manually or automatically. To manually assign weights, we would see how different parameters affect throughput and latency. To automatically learn the weights, the balancer would measure the throughput and latency and use a reactive approach ({\it e.g.}, control theory) or a learning approach ({\it e.g.}, machine learning). Constructing loss functions and converging parameters requires a deep understanding of the local (input parameters) to global (what is good) metric mappings, so we would re-use the concepts from earlier sections.
+
+\section{Heuristic}
+%if (plenty of CPU), optimize for cache hit ratio\\
+%	else optimize distributing load
+	
+% What is a heuristic
+A heuristic is a strategy for solving problems, learning, and discovering. This is how the balancer resolves trade-offs. To achieve a heuristic, the balancer can adjust ``when" to move resources, ``where" to move resources, and ``how many" resources to move. These parameters are subject to many trade-offs, which will drastically affect performance. 
+
+% Sliding options
+We think of these trade-offs as sliding options, where we can position a setting (or slider) along a spectrum of choices. A flat out minimization (moving the slider to one side of the spectrum) is appealing but minimizing one trade-off too much can lead to non-ideal behavior. A good balancer will position these sliders dynamically and in relation to the other sliders.
+
+% Looking ahead
+In this section, we identify important trade-offs that a load balancer must acknowledge. A good load balancer maintains a thorough understanding of the system's resources and responsibilities by constantly weighing many trade-offs. Today's systems use thresholds and predictions to set the trade-offs for determining ``when" to move resources, ``where" to move resources, and ``how many" resources to move. We argue that the next steps should be to dynamically adjust the different trade-offs if we see bad behavior. The goal of this section is to examine the potential for dynamic tuning in today's trade-offs and encourage debate, rather than advocate any single approach. 
+
+% Example
+%For example, minimizing the number of migrations, as shown in Figure~\ref{sep-dir_clients3_overutilized.png}, produces bad behavior (although it may have the best performance). To understand if this the best configuration, we need to understand how the trade-offs affect each other by dynamically changing configurations until we arrive at a high-performing, balanced system. 
+
+\subsection{Aggressive vs. Hesitant migrations}
+\begin{minipage}{0.8\textwidth}
+	\includegraphics[width=1\textwidth]{./figures/omnigraffle/sliders/aggressive-hesitant.png} 
+	\vspace{0.2in}
+\end{minipage}
+
+% how fast should we change the system
+Determining ``when" to migrate resources changes how often the system changes in response to the workload. If the balancer aggressively moves subtrees around the cluster, it will accurately follow the workload at the risk of overfitting. If the balancer is hesitant with its migrations, it will be less susceptible to thrashing at the risk of being unresponsive. Optimizing this trade-off will reduce thrashing and should account for the cost of migration. If successfully configured, the system will correctly determine ``when" to move resources, which mitigates unnecessary migrations. To adjust these decisions, the balancer can change the load calculations, load thresholds, and metric weightings in the model.
+
+% Calculating load
+There are competing techniques for calculating load, such as current resource distribution~\cite{vmware-drs,gulati:hotcloud2011-cloud-resource-management} and resource consumption over a sliding window~\cite{xen-wlb,wood:nsdi07-sandpiper}. Using assigned resources reduces the space overhead and intrusiveness of monitoring resource consumption. For example,~\cite{wood:nsdi07-sandpiper} has a time series and usage histogram for all resources on every host. Using resource consumption is more accurate, as it reacts to the current load and can avoid single usage spikes. Adjusting the load calculation, or even a weighting of a combination of these techniques, could be tuned dynamically based on the system's performance in response to space limitations, latency, or accuracy. 
+
+% Threshold for migrations
+Adjusting the loads thresholds for migrations can also be dynamically tuned. For example, if a certain CPU utilization threshold triggers unnecessary migrations, the system could increase the value. This would require more load on a single host before inducing a migration and would ultimately reduce the total number of migrations.
+
+% Metric weightings
+Finally, adjusting the metric weightings can change the number of migrations. Depending on the workload, the balancer can favor different metrics when determining the state of system. For example, the balancer might determine that the workload is CPU-intensive, so a high CPU utilization is more likely to indicate an overloaded host. 
+
+\subsection{Centralized vs. Decentralized knowledge}
+\begin{minipage}{0.8\textwidth}
+	\includegraphics[width=1\textwidth]{./figures/omnigraffle/sliders/centralized-decentralized.png} 
+	\vspace{0.2in}
+\end{minipage}
+
+% how much global knowledge
+Effectively determining ``where" to migrate resources is highly dependent on how much global knowledge each MDS needs. Maintaining global knowledge lets the system make more accurate decisions. For example, if the decision maker had global knowledge of the MDS cluster, it would know immediately where to migrate resources without overloading the importing node. Unfortunately, maintaining global knowledge is difficult because nodes need to exchange information, usually in the form of heartbeats. Maintaining consistency is so difficult, that many systems, such as HDFS~\cite{shvachko:login2012-hdfs-scalability} and GFS~\cite{ghemawat:sosp2003-gfs}, use a single manager node because scale was not an immediate concern.
+
+% Local knowledge.
+Only maintaining local knowledge is easier, since components can scale linearly and make fast decisions. Each MDS can operate as fast as they want, since their execution is not dependent on any other MDS. Unfortunately, this makes it very difficult to determine what the other nodes in the system are doing, how overloaded they are, and how much capacity they have left. Many independently operating nodes that do what is best for themselves do not necessarily aggregate to a well-balanced system.
+
+% There is a happy spot Ivy~\cite{ivy}
+We predict that there is a happy medium between maintaining local and global knowledge.  Some systems, such as Microsoft's NAID~\cite{murray:sosp13-naiad}, try to find the best amount of centralization using many messages and timestamps. This setting will depend on requirements of the workload - in our case, flash crowds and hotspots need low latency, so the decision making should not be too reliant on global knowledge. For example, Giga+~\cite{patil:fast2011-giga+} chooses ultimate scalability using loose consistency, where each node scales their load independently and clients can find metadata by traversing partition histories. 
+
+
+% Optimization
+Optimizing this trade-off should involve accounting for the cost of migration and for the state of other hosts in relation to the current host. If successfully configured, the system will correctly determine ``where" to move resources, which mitigates inefficient migrations. To adjust these decisions, the balancer can change how much knowledge it collects from the rest of the MDS cluster.
+
+%Trade-offs for ``where" (attacks inefficient), changes how we calculate (holistic/individual)
+%\begin{itemize}
+%	\item slide \# of host's state parameters 
+%	\item slide weight of host's state parameters
+%	\item slide accuracy of target calculation
+%	\item[\(\rightarrow\)] account for the state of other hosts, account for cost of migration	
+%\end{itemize}
+
+\subsection{Accuracy vs. Speed of calculation}
+\begin{minipage}{0.8\textwidth}
+	\includegraphics[width=1\textwidth]{./figures/omnigraffle/sliders/accuracy-speed.png} 
+	\vspace{0.2in}
+\end{minipage}
+
+% How fast the system makes decisions.
+The trade-offs for determining ``how much work" to expend selecting migrations changes how fast the system makes decisions. Related work that attempts online learning methods abandon calculating the optimal solution because it takes too long. Instead, they employ heuristics that minimize one parameter and set another as a constraint. If successfully configured, the system will make decisions that are ``good enough", trusting that eventually, it will learn the best migrations. To adjust these decisions, the system can adjust the number of host parameters to consider and the weight of those parameters. 
+
+% # of parameters and weighting
+Scaling the number of host parameters and determining the weights of those parameters are well-known problems. Many migration systems, such as systems built for IO modeling~\cite{behzad:techreport2014-io-autotuning}, database migration~\cite{elmore:sigmod2013-pythia}, and data placement~\cite{strong:2014techreport-jack}, focus on 2 - 4 host parameters when making migration target decisions. Determining the weights of the host parameters, lends itself well to machine learning. For example,~\cite{behzad:techreport2014-io-autotuning} uses machine learning to iteratively fit a curve to model parallel IO. 
+
+% Tradeoffs for both of the these
+Adding or adjust these parameters, by limiting the search space or the number of learning iterations, can affect the computation time~\cite{strong:2014techreport-jack, behzad:techreport2014-io-autotuning} and the accuracy of the target calculation. For example, both~\cite{vmware-drs, xen-wlb} simulates migrations; while~\cite{vmware-drs} exhaustively searches all potential migrations, ~\cite{xen-wlb} stops the search space when {\it any} solution is found.  The system can dynamically adjust thee trade-off by limiting the search space or the number of learning iterations based on how quickly the decisions need to be made and how accurate the target computation needs to be.  Systems that achieve good performance with approximations may learn to make their target computation faster with less and less precision. 
+
+% The spectrum
+Adjusting this parameter can make the decision more reactive or more optimal. A reactive decision will be made quickly, while an optimal solution will be the most accurate. This work focuses on reactive approaches, since load balancing for hot spots or flash crowds requires the fastest responses. Furthermore, other work has shown that finding an optimal solution can be far too time-consuming~\cite{strong:2014techreport-jack,behzad:techreport2014-io-autotuning}. 
+
+% Figuring out the threshold
+Figuring out how many migration combinations to check can be learned. If previous decisions were made too slowly, the threshold could be lowered. While we will initially set thresholds according to best-practices, there is nothing preventing us from using machine learning techniques to learn the best threshold.
+
+\subsection{Learning vs. Forgetting rate}
+\begin{minipage}{0.8\textwidth}
+	\includegraphics[width=1\textwidth]{./figures/omnigraffle/sliders/learning-forgetting.png} 
+	\vspace{0.2in}
+\end{minipage}
+
+% how long do we retain knowledge
+The trade-offs for determining ``how much state" to retain alters computation time and the space to store the data. With more history to parse and learn from, the time to make decisions will take longer. With more state to log, there is a need for more space, either on disk or in memory. Optimizing this trade-off should involve a threshold for the amount of data save. If successfully configured, the system's decisions will not be altered too drastically. 
+
+% The spectrum
+Like all the other parameters, the amount of state to retain for the migration decisions can be automatically tuned. If the previous decisions are too inaccurate, the system can retain more state. This state will take longer to search and process, but the extra data can improve the benefit of the selected migrations. 
+
+\subsection{Large vs. Small migration units}
+\begin{minipage}{0.8\textwidth}
+	\includegraphics[width=1\textwidth]{./figures/omnigraffle/sliders/large-small.png} 
+	\vspace{0.2in}
+\end{minipage}
+
+% how fast the system changes
+The trade-offs for determining ``how many" resources to migrate changes how fast the system changes. Optimizing this trade-off should involve properly calculating the load on the hosts. If successfully configured, the system will correctly determine ``how much" to migrate and should mitigate aggressive migrations.
+
+% Weighting resources
+The system can adjust the weighting of the resources to migrate. With this weighting, the system can determine which resources to move first. For example,~\cite{xen-wlb} weights resources based on user preference and migrates virtual machines starved for a certain resource first.  After a number of migrations, the system can learn which resources correlate to better performance for a given workload.  Then the system can dynamically tune the weighting of resources to move the more important resources first. We could even change what performance metric to use, if we want to weight things such as response time~\cite{manjunath:ijais2012-paas-provisioing} or execution time~\cite{vilutis:ITI2012-cloud-load-balancing} as most important.
+
+% Amount to migrate
+The system can also adjust the number of resources to send over the wire.~\cite{wood:nsdi07-sandpiper} tries to send the virtual machine with the most resource consumption to maximize the utilization per byte. But it may be better to send more virtual machines with less utilization to an idle host. The system could move a high utilization virtual machine, learn that it performs poorly, and then decide to start moving smaller units.
+	

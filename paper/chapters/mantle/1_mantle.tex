@@ -20,12 +20,6 @@ and two-phase commits~\cite{sinnamohideen:atc2010-ursa}, and directory
 partitioning~\cite{xing:sc2009-skyfs, patil:fast2011-giga+, ren:sc2014-indexfs,
 weil:osdi2006-ceph}, these systems fail to exploit locality.
 
-\begin{figure}[tb]
-	\centering	
-	\includegraphics[width=0.75\textwidth]{./chapters/mantle/figures/workload-tar.png}
-	\caption{Metadata hotspots, represented by different shades of red, have spatial and temporal locality when compiling the Linux source code. The hotspots are calculated using the number of inode reads/writes and smoothed with an exponential decay. \label{figure:workload-tar}}
-\end{figure}
-
 % ... and what we do
 We envision a general purpose metadata balancer that responds to many types of
 parallel applications. To get to that balancer, we need to understand the

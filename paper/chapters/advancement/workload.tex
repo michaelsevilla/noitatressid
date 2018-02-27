@@ -1,0 +1,46 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MODEL
+\chapter{Workload}
+\label{workload}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The workload and benchmarking strategy play important roles in both evaluating the system and designing the system. First, we plan to benchmark the CephFS metadata cluster with micro and macro benchmarks. Then we will look at how the balancer can use the workload behavior to design  more robust system.
+
+\section{Benchmarking}
+% Microbenchmarks
+We plan to expose the problem by observing how the CephFS metadata cluster reacts to microbenchmarks. The performance of microbenchmarks are easy to predict and validate. They are used in this work to help expose the behavior of the system - if we know how it should behave, it helps the validation process. For example, we predict that the create-intensive workload will divide the cache hit rates among MDSs as the directory grows. When we say increasingly slower latencies, as shown in Figure~\ref{unpredictable-latency}, we knew something is wrong. We turned off a recursive statistics calculator and performance normalized to predictable latencies.
+
+\begin{figure}[tbh]
+	\centering
+	\includegraphics[width=0.8\textwidth]{./figures/graphs/isolate/sep_dir_clients2_mds1_cpu_latency.pdf} 
+	\caption{Unpredictable latency on a microbenchmark exposes a useful bug. Checking recursive statistics on enormous directories incurs poor behavior.\label{unpredictable-latency}}
+\end{figure}
+% Macrobenchmakrs
+Although we have considered microbenchmarks in our preliminary results, we plan to expand our benchmarking to more realistic workloads. Previous metadata studies enumerate the limitations in traces used in academic studies and uploaded to SNIA, such as the decoupling of namespace snapshots and trace operations~\cite{abad:techreport2012-fstrace} or the age/targeted workload of the trace~\cite{leung:atc2008-nfs-trace}. We use a synthetic metadata-intensive microbenchmark because an in-depth metadata study is beyond the scope of this work and we are not interested in spending time modeling file system metadata workloads~\cite{abad:ucc2012-mimesis}.
+
+% Macrobenchmarks
+We will model our macrobenchmarks after common use cases for CephFS; talks with the Ceph developers, and the mailing list, indicate that the community is planning to use CephFS as a backup repository, a shared file system, a file server, and/or a compute backend. We have identified the most common uses for CephFS and matched them with benchmarks from similar work in academia:
+\begin{enumerate}
+	\item backup repository: front servers sync to CephFS
+	\begin{itemize}
+		\item[\(\rightarrow\)] workload: rsync from nodes to CephFS~\cite{muthitacharoen:sosp2001-nfs}
+	\end{itemize}
+	\item big file system: shared, highly-available directories
+	\begin{itemize}
+		\item[\(\rightarrow\)] workload: kernel compile (inodes \(\in\) cache)~\cite{weil:phdthesis07}
+	\end{itemize}
+	\item file server: maintain \(3\times\) read-only copies
+	\begin{itemize}
+		\item[\(\rightarrow\)] workload: TPC-H database benchmark~\cite{roselli:atec2000-FS-workloads}
+	\end{itemize}
+	\item compute backend: run HPC workloads through web interface	
+	\begin{itemize}
+		\item[\(\rightarrow\)] GenBase\footnote{http://istc-bigdata.org/index.php/genbase-a-benchmark-for-the-genomics-era/} genomics benchmark (Hadoop)
+	\end{itemize}
+\end{enumerate}
+
+\section{Learning on workloads}
+
+Extensive on work on characterizing workloads and learning new workload templates can be used in our work once our system is built. Virtual machine dynamic resource provisioning~\cite{vilutis:ITI2012-cloud-load-balancing} and scheduling~\cite{quiroz:grid2009-cloud-workload-provisioning} are techniques that characterize applications using signatures. Load balancing techniques for resource provisioning~\cite{padala:eurosys2009-autocontrol}, virtual machines~\cite{wood:nsdi07-sandpiper} and databases~\cite{elmore:sigmod2013-pythia} look at the application's resource utilization signature, to try and pack I/O intensive consumers on the same nodes as CPU-intensive consumers. We can even base migration events on system load, similar to the technique used in~\cite{manjunath:ijais2012-paas-provisioing,vilutis:ITI2012-cloud-load-balancing}.
+
+% How this can alter weighting and communication
+Learning on these workloads should change the resource weights and consensus algorithms in our system. If we know more about our workload, we can iteratively tune the weights to impose more importance on a certain resource. For example, if the workload is CPU-intensive, the balancer should make the load calculations favor CPU utilization to make it more difficult for the threshold to be breached. The consensus algorithms will also change, as the rate and technique that experts agree on something should be changed to meet the workload. For example, if the workload does not incur excessive load distribution, the consensus need not be part of the critical path. 

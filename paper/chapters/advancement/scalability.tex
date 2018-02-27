@@ -1,0 +1,20 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SCALABILITY
+\chapter{Scalability}
+\label{scalability}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Once the system is implemented and optimized for the best metrics, we will evaluate how the system scales. Right now, we are focusing on a small number of MDSs just to understand the performance implications and behavior, but we will eventually need to put the system into the context of large scale processing. We expect that scaling will drastically affect our models, the cost of communication, the overhead of migration, and the selected heuristic. Below, we give our hypothesis for the effect of scaling on each of these topics.
+
+% Affect: different resources will matter differently.
+Adding more nodes will change the models of the system. The resources will have a different effect on performance because the workload will be bounded differently, the total capacity of the system will change, and the effect on performance will change. This will affect the load calculation and migration decisions, since the state of the system will be viewed differently. We hypothesize that this will be problem for manually configured weights but should normalize if the balancer learns the weights over time. 
+
+% Affect: takes longer to collect state
+With more nodes, it will take longer to maintain consistency, synchronization, and state. This has a consequence for models and heuristics that require global knowledge. For example, this might be a problem for the current scheme that CephFS uses because the global subtree maps that are exchanged have the potential to report inaccurate load measurements if the MDSs are not properly synchronized. We hypothesize that this approach will be exacerbated as the system scales. Peer-to-peer systems have dealt with finding data in a distributed system, so many of the techniques for reducing communication or siloing disjoint sets of MDSs can be used if collecting state at a local server proves to be too much. 
+
+%~\cite{farsite, ivy, chord}
+
+% Affect: takes longer to move things
+With more nodes, it will take longer to move subtrees. This has a consequence for the model and the heuristic the balancer uses. The model of the system should account for the cost of migration when making decisions and analyzing performance. The heuristic will also change, as optimizing for some metrics, such as minimizing migrations, might be more beneficial. We hypothesize that scaling will not change the cost of migration enough to make an impact on the model or selected heuristic. Moving subtrees should be simple and fast because inodes, which have no allocation metadata, are directly embedded in directory entries. As a result, migrating directories does not put too much data on the wire. Furthermore, we expect good performance if the metric is cache hit ratio, since processing requests cause inodes to persist in the cache on a single directory fetch ({\it e.g.}, \texttt{ls -l}).
+
+% Affect: changes which metrics are important
+Finally, scaling the number of nodes in the system changes which heuristics are successful because the metrics change. Just like the model, the addition of nodes changes the heuristics and what works. We hypothesize that learning which heuristic is optimal is the best solution, since manually weighting the system and optimizing for different metrics is unsustainable. 
