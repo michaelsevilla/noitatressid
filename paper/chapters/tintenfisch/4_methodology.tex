@@ -1,0 +1,172 @@
+\vspace{-0.5em}
+\section{Methodology: Compact Metadata}
+\label{sec:methodology}
+\vspace{-0.5em}
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[b]{0.3\linewidth}
+    For \(n\) processes on \(m\) servers:
+    \begin{itemize}
+      \setlength\itemsep{-0.5em}
+      \item[] \texttt{\# of dirs =} \(m \times \texttt{mkdir()}\)
+      \item[] \texttt{\# of file =} \(2 \times n\)
+      \item[] \texttt{\# of file per dir =} \(n/m\)
+    \end{itemize}
+    \caption{Function generator for PLFS\vspace{1em}} \label{fig:plfs}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.3\linewidth}
+      \footnotesize
+      \begin{minted}[xleftmargin=1em]{lua}
+local box require 'box2d'
+for i=_x,_x+x do for j=_y,_y+y do
+  if t>30 then 
+    obj_list.insert(box(x,y,z))
+  else 
+    b0,b1,b2,=box.nsplit(4)
+    obj_list.insert(b0,b1,b2)
+end end end 
+return obj_list
+     \end{minted}
+      \caption{Code generator for SIRIUS\vspace{1em}} \label{fig:sirius}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.35\linewidth}
+      \centering
+      \footnotesize
+      \begin{minted}[xleftmargin=1em]{c++}
+void recurseBranch(TObjArray *o){
+  TIter i(o); 
+  for(TBranch *b=i.Next();
+      i.Next()!=0;
+      b=i.Next()){
+    processBranch(b);
+    recurseBranch(b->GetListOfBranches());
+  }
+}
+      \end{minted}
+      \caption{Code generator for HEP\vspace{1em}} \label{fig:hep}
+  \end{subfigure}
+\caption{Namespace generators for 3 motivating examples.\label{fig:use-cases}}
+\end{figure*}
+
+%local box require 'box2d'
+%o = {}; i = 1   -- o: object list
+%for _x=x,x+size do for _y=y,y+size do 
+%  if temperature>30 then
+%    box0=box.nsplit(0,2,h,x,y,z,size)
+%    box1=box.nsplit(1,2,h,x,y,z,size)
+%    o[i]=box0(); i=i+1
+%    o[i]=box1(); i=i+1
+%  else o[i] = _x.._y..z.."_0"; i=i+1 end
+%end end
+%return o
+ 
+
+%char *tn = getTreeName().c_str();
+%TTree* t = (TTree*) root->Get(tn);
+%TIter i(t->GetListOfBranches());
+%for(TBranch *b = i.next();
+%    i.Next() != 0;
+%    b = (TBranch*) i.Next())
+%  recurseBranch(b->GetListOfBranches());
+
+%For three domain-specific applications and use cases, we have identified
+%scalability challenges because of the size of the namespace.  Tintensfisch
+%compacts metadata by defining namespace schemas and proposing namespace
+%generators.  
+Namespace schemas and generators help clients and servers establish an
+understanding of the final file system metadata shape and size that eliminates
+the metadata overheads highlighted above.
+
+\vspace{-0.5em}
+\subsection{Namespace Schemas}
+\label{sec:namespace-schemas}
+\vspace{-0.5em}
+
+Namespace schemas describe the structure of the namespace. A ``balanced"
+namespace means that subtree patterns (files per directory) are repeated and a
+``bounded" namespace means that the range of file/directory names can be
+defined {\it a-priori} (before the job has run but after reading metadata).
+Traditional shared file systems are designed for general file system workloads,
+like user home directories, which have an unbalanced and unbounded namespace
+schema because users can create any number of files in any pattern.  PLFS has a
+balanced and bounded namespace because the distribution of files per directory
+is fixed (and repeated) and any subtree can be generated using the client
+hostnames and the number of processes.  ROOT and SIRIUS are examples of
+unbalanced and bounded namespace schemas. The file per directory shape is not
+repeated (it is determined by application-specific metadata, LRH for ROOT or
+variables for SIRIUS) but the range of file/directory names can be determined
+before the job starts.
+
+\vspace{-0.5em}
+\subsection{Namespace Generators}
+\label{sec:namespace-generators}
+\vspace{-0.5em}
+
+A namespace generator is a compact representation of a namespace that lets
+clients/servers generate file system metadata. They can be used for bounded or
+balanced namespace schemas.  Tintenfisch is built on
+Cudele~\cite{sevilla:ipdps18-cudele} so a centralized, globally consistent
+metadata service can decouple subtrees and clients can do metadata IO locally
+with the consistency/durability semantics they require. This concept is similar
+to LWFS~\cite{oldfield:cc06-lwfs}, which supplied a core set of functionality
+and applications add additional functionality.  In Tintenfisch, namespace
+generators are stored in the directory inode of the decoupled subtree using
+the ``file type" interface from Malacology~\cite{sevilla:eurosys17-malacology}.
+Next we discuss 3 example namespace generators.
+
+%This is similar to push-down predicates in databases, where the application is
+%providing domain-specific knowledge that the storage system knows how to
+%leverage.  
+
+% Tintenfisch relies on the user to design effective
+%namespace generators that leverage domain-specific knowledge to get the highest
+%performance. This programmable storage
+%approach~\cite{sevilla:eurosys17-malacology} helps application developers
+%tailor the storage system to the use case without having to design a new
+%storage system from scratch.
+
+\textbf{Formula Generator}: takes domain-specific information as input and
+produces a list of files and directories.  For example, PLFS creates files and
+directories based on the number of clients, so administrators can use the
+formula in Figure~\ref{fig:plfs}, which takes as input the number of processes
+and hosts in the cluster and outputs the number of directories, files, and
+files per directory.  The namespace drawn in Figure~\ref{fig:tree_plfs} can be
+generated using an input of 3 hosts each with 1 process. 
+%With this namespace
+%generator, clients can open just the container inode and then compute and
+%access its contents without \texttt{lookup()} and \texttt{open()} RPCs to a
+%centralized metadata service.
+
+%For \(n\) processes on \(m\) servers:
+%\begin{itemize}
+%  \item[] \texttt{\# of dirs =} \(m \times \texttt{mkdir()}\)
+%  \item[] \texttt{\# of file =} \(2n \times \texttt{create()} [+ 2n \times \texttt{lookup()}]\)
+%  \item[] \texttt{\# of file per dir =} \(n/m\)
+%\end{itemize}
+
+\textbf{Code Generator}: gives users the flexiblity to write programs that
+generate the namespace. This is useful if the logic is too complex to store as
+a formula or requires external libraries to interpret metadata. For example,
+SIRIUS constructs the namespace using domain-specific partitioning logic
+written in Lua.  Figure~\ref{fig:sirius} shows how the namespace can be
+constructed by iterating through  bounding box coordinates and checking if a
+threshold temperature is eclipsed. If it is, extra names are generated using
+the \texttt{box2d} package.  Although the partitioning function itself is not
+realistic, it shows how code generators can accommodate namespaces that are
+complex and/or require external libraries.  
+
+\textbf{Pointer Generator}: references metadata in scalable storage and avoids
+storing large amounts of metadata in inodes, which is a frowned upon in
+distributed file system communities~\cite{docs:cephinternals}. This is useful
+if there is no formal specification for the namespace. For example, ROOT uses
+self-describing files so headers and metadata need to be read for each ROOT
+file. A code generator is insufficient for generating the namespace because all
+necessary metadata is in objects scattered in the object store.  A code
+generator containing library code for the ROOT framework \emph{and} a pointer
+generator for referencing the input to the code can be used to describe a ROOT
+file system namespace.  Figure~\ref{fig:hep} shows a code generator example
+where clients requesting Branches follow the pointer generator (not pictured)
+to objects containing metadata. An added benefit is that Tintenfisch can lazily
+construct parts of the namespace as needed, avoiding the inode problem
+discussed in~\S\ref{sec:hep}.
