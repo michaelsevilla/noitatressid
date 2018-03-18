@@ -1,23 +1,21 @@
-\vspace{-0.5em}
 \section{Methodology: Compact Metadata}
 \label{sec:methodology}
-\vspace{-0.5em}
 
-\begin{figure*}[t]
+\begin{figure}[tb]
   \centering
-  \begin{subfigure}[b]{0.3\linewidth}
-    For \(n\) processes on \(m\) servers:
-    \begin{itemize}
-      \setlength\itemsep{-0.5em}
-      \item[] \texttt{\# of dirs =} \(m \times \texttt{mkdir()}\)
-      \item[] \texttt{\# of file =} \(2 \times n\)
-      \item[] \texttt{\# of file per dir =} \(n/m\)
-    \end{itemize}
-    \caption{Function generator for PLFS\vspace{1em}} \label{fig:plfs}
-  \end{subfigure}
-  \begin{subfigure}[b]{0.3\linewidth}
-      \footnotesize
-      \begin{minted}[xleftmargin=1em]{lua}
+  For \(n\) processes on \(m\) servers:
+  \begin{itemize}
+    \setlength\itemsep{-0.5em}
+    \item[] \texttt{\# of dirs =} \(m \times \texttt{mkdir()}\)
+    \item[] \texttt{\# of file =} \(2 \times n\)
+    \item[] \texttt{\# of file per dir =} \(n/m\)
+  \end{itemize}
+  \caption{Function generator for PLFS} \label{fig:plfs}
+\end{figure}
+
+\begin{figure}
+  \footnotesize
+  \begin{minted}[xleftmargin=1em]{lua}
 local box require 'box2d'
 for i=_x,_x+x do for j=_y,_y+y do
   if t>30 then 
@@ -27,13 +25,13 @@ for i=_x,_x+x do for j=_y,_y+y do
     obj_list.insert(b0,b1,b2)
 end end end 
 return obj_list
-     \end{minted}
-      \caption{Code generator for SIRIUS\vspace{1em}} \label{fig:sirius}
-  \end{subfigure}
-  \begin{subfigure}[b]{0.35\linewidth}
-      \centering
-      \footnotesize
-      \begin{minted}[xleftmargin=1em]{c++}
+  \end{minted}
+  \caption{Code generator for SIRIUS} \label{fig:sirius}
+\end{figure}
+\begin{figure}
+  \centering
+  \footnotesize
+  \begin{minted}[xleftmargin=1em]{c++}
 void recurseBranch(TObjArray *o){
   TIter i(o); 
   for(TBranch *b=i.Next();
@@ -43,11 +41,9 @@ void recurseBranch(TObjArray *o){
     recurseBranch(b->GetListOfBranches());
   }
 }
-      \end{minted}
-      \caption{Code generator for HEP\vspace{1em}} \label{fig:hep}
-  \end{subfigure}
-\caption{Namespace generators for 3 motivating examples.\label{fig:use-cases}}
-\end{figure*}
+  \end{minted}
+  \caption{Code generator for HEP} \label{fig:hep}
+\end{figure}
 
 %local box require 'box2d'
 %o = {}; i = 1   -- o: object list
@@ -78,10 +74,8 @@ Namespace schemas and generators help clients and servers establish an
 understanding of the final file system metadata shape and size that eliminates
 the metadata overheads highlighted above.
 
-\vspace{-0.5em}
 \subsection{Namespace Schemas}
 \label{sec:namespace-schemas}
-\vspace{-0.5em}
 
 Namespace schemas describe the structure of the namespace. A ``balanced"
 namespace means that subtree patterns (files per directory) are repeated and a
@@ -98,10 +92,8 @@ repeated (it is determined by application-specific metadata, LRH for ROOT or
 variables for SIRIUS) but the range of file/directory names can be determined
 before the job starts.
 
-\vspace{-0.5em}
 \subsection{Namespace Generators}
 \label{sec:namespace-generators}
-\vspace{-0.5em}
 
 A namespace generator is a compact representation of a namespace that lets
 clients/servers generate file system metadata. They can be used for bounded or

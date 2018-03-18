@@ -161,30 +161,25 @@ parameters, number of worker tasks, and job lengths).
 \subsection{Application-Specific Knowledge}
 \label{sec:dom-specific}
 
-\begin{figure*}[t!]
-    \begin{subfigure}[t]{0.48\textwidth}
-        \centering
-	\includegraphics[width=1\textwidth]{./chapters/controlplane/parsplice/figures/keyspace-zoomed.png}\\
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=1\textwidth]{./chapters/controlplane/parsplice/figures/keyspace-zoomed.png}\\
+  \caption{Key activity for a 4 hour run shows groups of accesses to the same
+  subset of keys. Detecting these access patterns leads to a more accurate cache
+  management strategy, which is discussed in Section~\S\ref{sec:regime-detection}
+  and the results are in Figure~\ref{fig:dscache-vs-none}.}
+  \label{fig:keyspace-zoomed}
+\end{figure}
 
-\caption{Key activity for a 4 hour run shows groups of accesses to the same
-subset of keys. Detecting these access patterns leads to a more accurate cache
-management strategy, which is discussed in Section~\S\ref{sec:regime-detection}
-and the results are in Figure~\ref{fig:dscache-vs-none}.
-\label{fig:keyspace-zoomed}}
-    \end{subfigure}%
-    ~ 
-    \begin{subfigure}[t]{0.48\textwidth}
-        \centering
-        \includegraphics[width=1\textwidth]{./chapters/controlplane/parsplice/figures/dscache-vs-none.png}\\
-
-	\caption{The performance/utilization for the dynamically sized cache (DSCache)
-policy. With negligible performance degradation, DSCache adjusts to different initial configurations
-(\(\Delta\)'s) and saves 3\(\times\) as much memory in the best case.
-\label{fig:dscache-vs-none}}
-
-    \end{subfigure}%
-    \caption{Different cache management policies tested over the Mantle policy engine.}
-\end{figure*}
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=1\textwidth]{./chapters/controlplane/parsplice/figures/dscache-vs-none.png}\\
+  \caption{The performance/utilization for the dynamically sized cache
+  (DSCache) policy. With negligible performance degradation, DSCache adjusts to
+  different initial configurations (\(\Delta\)'s) and saves 3\(\times\) as much
+  memory in the best case.}
+  \label{fig:dscache-vs-none}
+\end{figure}
 
 \begin{figure}[tb]
 \footnotesize

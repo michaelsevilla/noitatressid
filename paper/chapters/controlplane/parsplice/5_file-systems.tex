@@ -1,14 +1,10 @@
 \subsection{Towards General Data Management Policies}
 \label{sec:scope}
 
-\begin{figure*}[t!]
-    \centering
-    \ssp
-    \begin{subfigure}[t]{0.48\textwidth}
-        \centering
-        \tiny
-        \centering
-        \begin{minted}[xleftmargin=3em,linenos]{lua}
+\begin{figure}[tb]
+  \centering
+  \ssp
+  \begin{minted}[xleftmargin=3em,linenos]{lua}
 function when()
   if server[whoami]['cachesize'] > n then
     if server[whoami]['cachesize'] > 100K then
@@ -20,17 +16,17 @@ function when()
   end
   return false
 end
-        \end{minted}
-        \caption{ParSplice cache management policy that absorbs the burstiness of the
-        workload before switching to a constrained cache.  The
-        performance/utilization for different  \(n\) is in
-        Figure~\ref{fig:methodology-tradeoff}. \label{src:lru-dyn}}
-    \end{subfigure}%
-    ~ 
-    \begin{subfigure}[t]{0.48\textwidth}
-        \centering
-        \tiny
-        \begin{minted}[xleftmargin=3em,linenos]{lua}
+  \end{minted}
+  \caption{ParSplice cache management policy that absorbs the burstiness of the
+  workload before switching to a constrained cache.  The performance/utilization
+  for different  \(n\) is in Figure~\ref{fig:methodology-tradeoff}.}
+  \label{src:lru-dyn}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \ssp
+  \begin{minted}[xleftmargin=3em,linenos]{lua}
 local function when()
   if servers[whoami]["load"] > target then
     overloaded = RDstate() + 1
@@ -42,16 +38,15 @@ local function when()
   else then WRstate(0) end
   return false
 end
-        \end{minted}
-	\caption{CephFS file system metadata load balancer, designed in 2004
-        in~\cite{weil:sc2004-dyn-metadata}, reimplemented in Lua
-        in~\cite{sevilla:sc15-mantle}. This policy has many similarities to the
-        ParSplice cache management policy.\label{src:lua-cephfs}}
-    \end{subfigure}
-    \dsp
-    \caption{ParSplice's cache management policy has the same components as
-    CephFS's load balancing policy.}
-\end{figure*}
+  \end{minted}
+  \caption{CephFS file system metadata load balancer, designed in 2004
+  in~\cite{weil:sc2004-dyn-metadata}, reimplemented in Lua
+  in~\cite{sevilla:sc15-mantle}. This policy has many similarities to the
+  ParSplice cache management policy.\label{src:lua-cephfs}}
+\end{figure}
+%\dsp
+%\caption{ParSplice's cache management policy has the same components as
+%CephFS's load balancing policy.}
 
 In the previous section, we used our data management language and the Mantle
 policy engine to design effective cache management strategies for a new

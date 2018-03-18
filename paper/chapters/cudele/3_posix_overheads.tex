@@ -21,40 +21,36 @@ guarantees.
 \subsection{Durability}
 \label{sec:durability}
 
-\begin{figure*}[t]
+\begin{figure}[tb]
   \centering
-  \begin{subfigure}[b]{.32\linewidth}
-      \centering
-      \includegraphics[width=1\linewidth]{./chapters/cudele/figures/slowdown-journal.png}
-      \caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-durability/visualize/viz.ipynb}{source}]
-      effect of journal} \label{fig:overhead-a}
-  \end{subfigure}
-  \begin{subfigure}[b]{.32\linewidth}
-      \centering
-      \includegraphics[width=0.98\linewidth]{./chapters/cudele/figures/slowdown-interfere-scale.png}
-      \caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-creates/visualize/viz.ipynb}{source}]
-      interference hurts variability}
-      \label{fig:overhead-b}
-  \end{subfigure}
-  \begin{subfigure}[b]{.32\linewidth}
-      \centering
-      \includegraphics[width=1.15\linewidth]{./chapters/cudele/figures/behavior-interfere.png}
-      \caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-interfere/visualize/viz.ipynb}{source}]
-      interference increases RPCs}
-      \label{fig:overhead-c}
-  \end{subfigure}
-  \caption{\newcomment{The durability and strong consistency slowdown of the
-existing CephFS implementation increases as the number of clients scales.
-Results in (a) and (b)  are normalized to 1 client that creates 100K files in
-isolation.  (a) shows the effect of journaling metadata updates; ``segment(s)"
-is the number of journal segments dispatched to disk at once. (b) shows the
-slowdown when another client interferes by creating files in all directories
-and (c) highlights the cause: }\oldcomment{The overhead of durability and
-strong consistency in CephFS. (a) shows the effect of different journal segment
-sizes, which are streamed into the object store for fault tolerance. (b) and
-(c) show that} when another client interferes, capabilities are revoked and
-metadata servers do more work.} \label{fig:overhead}
-\end{figure*}
+  \includegraphics[width=0.5\linewidth]{./chapters/cudele/figures/slowdown-journal.png}
+  \caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-durability/visualize/viz.ipynb}{source}]
+  Durability slowdown. The bars show the effect of journaling metadata updates;
+  ``segment(s)" is the number of journal segments dispatched to disk at once.
+  The durability slowdown of the existing CephFS implementation increases as the
+  number of clients scales.  Results are normalized to 1 client that creates 100K
+  files in isolation. }
+  \label{fig:overhead-a}
+\end{figure}
+
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=0.5\linewidth]{./chapters/cudele/figures/slowdown-interfere-scale.png}
+  \caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-creates/visualize/viz.ipynb}{source}]
+  Consistency slowdown. Interference hurts variability; clients slow down when another client
+  interferes by creating files in all directories.  Results are normalized to 1
+  client that creates 100K files in isolation.}
+  \label{fig:overhead-b}
+\end{figure}
+
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=0.5\linewidth]{./chapters/cudele/figures/behavior-interfere.png}
+  \caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-interfere/visualize/viz.ipynb}{source}]
+  Cause of consistency slowdown. Interference increases RPCs; when another
+  client interferes, capabilities are revoked and metadata servers do more work.}
+  \label{fig:overhead-c}
+\end{figure}
 
 % what is durability
 While durability is not specified by POSIX IO,

@@ -62,7 +62,7 @@ of our Ceph fork.}
 \label{sec:microbenchmarks}
 \begin{figure}[tb]
 \centering
-\includegraphics[width=1.0\linewidth]{./chapters/cudele/figures/composable-mechanisms.png}
+\includegraphics[width=0.5\linewidth]{./chapters/cudele/figures/composable-mechanisms.png}
 \caption{
 [\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/cudele-mechanisms/visualize/viz.ipynb}{source}]
 \newcomment{Overhead of processing 100K create events for each mechanism in
@@ -165,46 +165,40 @@ overheads and costs can differ {\it by orders of magnitude}. We also show that
 some mechanisms, like Nonvolatile Apply, are not worthwhile as currently
 implemented.}
 
-\begin{figure*}[tb]
+\begin{figure}[tb]
   \centering
-  \begin{subfigure}[b]{.3\linewidth}
-      \centering
-      \includegraphics[width=1.0\linewidth]{./chapters/cudele/figures/mergescale.png}
-      \caption{
-      [\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/cudele-mergescale/visualize/viz.ipynb}{source}]
-      \newcomment{parallel creates on clients}
-      }\label{fig:mergescale}
-  \end{subfigure}
-  \begin{subfigure}[b]{.3\linewidth}
-      \centering
-      \includegraphics[width=1.0\linewidth]{./chapters/cudele/figures/block-allow.png}
-      \caption{
-      [\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/cudele-blockapi/visualize/viz.ipynb}{source}]
-      \newcomment{block interference}
-      }\label{fig:block-allow}
-  \end{subfigure}
-  \begin{subfigure}[b]{.3\linewidth}
-      \centering
-      \includegraphics[width=1.0\linewidth]{./chapters/cudele/figures/slowdown-sync.png}
-      \caption{
-      [\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/cudele-partialreads/visualize/viz.ipynb}{source}]
-      \newcomment{syncing to global namespace}
-      }\label{fig:slowdown-sync}
-  \end{subfigure}
-\caption{\oldcomment{ The performance and features of Cudele}\newcomment{Cudele
-performance}. (a) \newcomment{shows the speedup of decoupled namespaces over
-RPCs; \texttt{create} is the throughput of clients creating files in-parallel
-and writing updates locally; \texttt{create+merge} includes the time to merge
-updates at the metadata server. }\oldcomment{shows the cost of merging client
-journals at the metadata server. Shipping and merging journals of
-updates}\newcomment{Decoupled namespaces} scale better than RPCs because there
-are less messages and consistency/durability code paths are bypassed. (b) shows
-how the allow/block API isolates directories from interfering clients. (c) is
-the slowdown of a single client syncing updates to the global namespace. The
-inflection point is the trade-off of frequent updates vs. larger journal
-files.}
-\label{fig:use-cases}
-\end{figure*}
+  \includegraphics[width=0.5\linewidth]{./chapters/cudele/figures/mergescale.png}
+  \caption{
+  [\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/cudele-mergescale/visualize/viz.ipynb}{source}]
+  The speedup of decoupled namespaces over RPCs for parallel creates on clients ;
+  \texttt{create} is the throughput of clients creating files in-parallel and
+  writing updates locally; \texttt{create+merge} includes the time to merge
+  updates at the metadata server.  Decoupled namespaces scale better than RPCs
+  because there are less messages and consistency/durability code paths are
+  bypassed.}
+  \label{fig:mergescale}
+\end{figure}
+
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=0.5\linewidth]{./chapters/cudele/figures/block-allow.png}
+  \caption{
+  [\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/cudele-blockapi/visualize/viz.ipynb}{source}]
+  The block/allow interference API isolates directories from interfering
+  clients.}
+  \label{fig:block-allow}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.5\linewidth]{./chapters/cudele/figures/slowdown-sync.png}
+  \caption{
+  [\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/cudele-partialreads/visualize/viz.ipynb}{source}]
+  Syncing to the global namespace. The bars show the slowdown of a single
+  client syncing updates to the global namespace. The inflection point is the
+  trade-off of frequent updates vs. larger journal files.}
+  \label{fig:slowdown-sync}
+\end{figure}
 
 \newcomment{{\it Composing Mechanisms}: The graph on the right of
 Figure~\ref{fig:composable-mechanisms} shows how applications can compose

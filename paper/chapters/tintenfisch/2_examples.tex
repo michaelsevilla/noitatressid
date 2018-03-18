@@ -1,7 +1,5 @@
-\vspace{-0.75em}
 \section{Motivating Examples}
 \label{sec:motivating-examples}
-\vspace{-0.75em}
 
 We look at the namespaces for 3 large-scale applications.  Each is from a
 different domain and this list is not meant to be exhaustive.  To highlight the
@@ -38,7 +36,7 @@ each figure.
      \centering
      \includegraphics[width=1\linewidth]{./chapters/tintenfisch/figures/plfs_problem.png} 
      \caption{[\href{https://github.com/michaelsevilla/tintenfisch-popper/blob/master/experiments/n1/vizualize.ipynb}{source}]
-     PLFS metadata size and operations.}
+     PLFS metadata operations.}
      \label{fig:plfs_problem}
    \end{subfigure}
 \caption{PLFS file system metadata. (a) shows that the namespace is structured
@@ -50,10 +48,8 @@ used to reduce the number of RPCs.}
 \end{figure*}
 
 
-\vspace{-0.75em}
 \subsection{High Performance Computing: PLFS}
 \label{sec:plfs}
-\vspace{-0.75em}
 
 % What is the problem the authors are trying to solve?
 Checkpointing performs small writes to a single shared file but because file
@@ -147,10 +143,8 @@ namespace helps writes but then the read performance is limited by the speed of
 transferring file system metadata across the network to the reading client {\it
 in addition} to reading the contents of the index files themselves.
 
-\vspace{-0.75em}
 \subsection{High Energy Physics: ROOT}
 \label{sec:hep}
-\vspace{-0.75em}
 
 % the data
 The High Energy Physics (HEP) community uses a framework called ROOT to
@@ -221,39 +215,40 @@ data and (2) easily ingest remote data over the network.
 %pages.
 
 
-\begin{figure*}[tb]
+\begin{figure}[tb]
     \centering
-    \begin{subfigure}[b]{.25\linewidth}
+    \begin{subfigure}[b]{.45\linewidth}
       \centering
       \includegraphics[width=1.0\linewidth]{./chapters/tintenfisch/figures/tree_hep_a.png} 
       \caption{file approach}
       \label{fig:tree_hep_a}
     \end{subfigure}
-    \begin{subfigure}[b]{.25\linewidth}
+    \begin{subfigure}[b]{.45\linewidth}
       \centering
       \includegraphics[width=1.0\linewidth]{./chapters/tintenfisch/figures/tree_hep_b.png} 
       \caption{namespace approach}
       \label{fig:tree_hep_b}
     \end{subfigure}
-    \begin{subfigure}[b]{.4\linewidth}
-      \centering
-      \includegraphics[width=1\linewidth]{./chapters/tintenfisch/figures/hep_runtime.png}
-      \caption{
-      [\href{https://github.com/michaelsevilla/tintenfisch-popper/blob/master/pipelines/hep/visualize/viz.ipynb}{source}]
-      ROOT metadata size and operations}
-      \label{fig:hep_runtime}
-    \end{subfigure}
 \caption{ROOT file system metadata. (a) file approach: stores data in a single
 ROOT file, where clients read the header and seek to data or metadata (LRH); a
 ROOT file stored in a distributed file system will have IO read amplification
 because the striping strategies are not aligned to Baskets. (b) namespace
-approach: stores Baskets as files so clients read only data they need. In (c),
-``Namespace" is the runtime of reading a file per Basket and ``File" is the
-runtime of reading a single ROOT file. RPCs are slower because of the metadata
-load and the overhead of pulling many objects.  Decoupling the namespace uses
-less network (because only metadata and relevant Baskets get transferred) but
-incurs a metadata materialization overhead.}
-\end{figure*}
+approach: stores Baskets as files so clients read only data they need.}
+\end{figure}
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics[width=1\linewidth]{./chapters/tintenfisch/figures/hep_runtime.png}
+    \caption{
+    [\href{https://github.com/michaelsevilla/tintenfisch-popper/blob/master/pipelines/hep/visualize/viz.ipynb}{source}]
+    ROOT metadata size and operations}
+    \label{fig:hep_runtime}
+\caption{``Namespace" is the runtime of reading a file per Basket and ``File"
+is the runtime of reading a single ROOT file. RPCs are slower because of the
+metadata load and the overhead of pulling many objects.  Decoupling the
+namespace uses less network (because only metadata and relevant Baskets get
+transferred) but incurs a metadata materialization overhead.}
+\end{figure}
 
 \textbf{Namespace Description}: the HEP community is running into scalability
 problems.  The current effort is to integrate the ROOT framework with Ceph. But
@@ -348,9 +343,7 @@ writes but then the read performance is limited by (1) the speed of
 transferring file system metadata across the network and (2) the cost of
 materializing parts of the namespace that are not relevant to the workload.
 
-\vspace{-0.75em}
 \subsection{Large Scale Simulations: SIRIUS}
-\vspace{-0.75em}
 
 SIRIUS~\cite{klasky:journal16-sirius} is the Exascale storage system being
 designed for the Storage System and I/O (SSIO)
@@ -380,7 +373,7 @@ designed to scale-out via additional independent instances.
 
 \begin{figure}[tb]
 \centering
-  \includegraphics[width=0.8\linewidth]{./chapters/tintenfisch/figures/empress.png}
+  \includegraphics[width=0.5\linewidth]{./chapters/tintenfisch/figures/empress.png}
   \caption{One potential EMPRESS design for storing bounding box metadata.
 Coordinates and user-defined metadata are stored in SQLite while object names
 are calculated using a partitioning function (\(F(x)\)) and returned as a list
