@@ -34,4 +34,4 @@ rm -r _minted-paper paper.aux paper.bbl paper.blg paper.log paper.out paper.sync
 for f in `find . -type f | grep .aux`; do rm $f; done
 
 echo "SUCCESS"
-
+open paper.pdf
