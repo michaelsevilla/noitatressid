@@ -5,74 +5,74 @@
 
 % Problem: large systems are difficult to manage
 Systems that process and store large amounts of data (petabytes and beyond) are
-difficult to manage. Computing has reached an era where the data is too large,
-the software is too complicated, the hardware is too fast, and the events are
-too frequent for any human to manage. These drastic changes should alter how
-large systems are designed and deployed. We argue that the most elegant and
-future-proof solution for improving and maintaining performance in these large
-systems is to improve the communication between applications and the storage.
-Our solution is  motivated by three trends that lead to more software layers:
-(1) more data, (2) extreme heterogeneity, and (3) open-source software.  The
-proliferation of large complex stacks composed of many layers makes this thesis
-an especially timely solution.
+difficult to manage. Administrators fail to keep up with today's workloads
+because data is too large, software is too complicated, hardware is too fast,
+and events are too frequent. The unmanageable nature of these hardware and
+software stacks is a result of abstracting away complexity using layers. This
+has been a boon to software because developers can focus on areas of their own
+expertise, but three trends have broken this programming model and proliferated
+unmanageable stacks: (1) more data, (2) extreme heterogeneity, and (3)
+open-source software. 
 
 % Timeliness: layers on layers; {big stacks, overhead, proof}
-The overwhelming volume, velocity, and veracity of today's data shapes
-modern software. When data grows too large, we scale to larger systems, either
-by scaling out or up. Focusing on the scale-out model has given birth to
-stacks, like Apache, that are used in industry, laboratories, and academia. But
-the size of these stacks leads to increased complexity, as code bases are
-larger and there are more layers~\cite{sevilla:eurosys17-malacology}, resulting
-in reduced performance, redundant code, and longer code paths. The overhead of
-these stacks are so high that many workloads can be outperformed by a single
-node with less resources~\cite{sevilla:discs2013-framework,
-rowstron:hotcdp2012-hadoop-vs-single-node, schwarzkopf:hotcloud2012-7-sins,
-gigaspaces:whitepaper2011-su-vs-so, michael:2007pdps-scale-up-x-scale-out}.
+\textbf{More Data}: The overwhelming volume, velocity, and veracity of today's
+data shapes modern software. When data grows too large, we scale to larger
+systems, either by scaling out or scaling up. Focusing on the scale-out model
+has given birth to stacks, like Apache, that are used in industry,
+laboratories, and academia. But the size of these stacks leads to increased
+complexity, as code bases are larger and more
+layered~\cite{sevilla:eurosys17-malacology}.
 
 % Timeliness: extreme hetoregeneity {memory wall, more hardware, more runtimes}
-Extreme heterogeneity in both software and hardware has also lead to larger
-software stacks that manage resources. Data centers are larger and have faster
-devices because device and network speeds are scaling much faster than DRAM
-speeds. The so-called memory wall~\cite{wulf:sigarch1995-memory-wall} pushes
-resource management into software runtimes, which must now manage large numbers
-of heterogeneous devices. The increasing momentum behind disaggregated
+\textbf{Extreme Heterogeneity}: Increased heterogeneity in software and
+hardware requires large stacks just to manage resources.  Data centers are
+larger and have faster devices because device and network speeds are scaling
+much faster than DRAM speeds. The so-called memory
+wall~\cite{wulf:sigarch1995-memory-wall} pushes resource management into
+software runtimes, which must now manage large numbers of heterogeneous
+devices. The increasing momentum behind disaggregated
 storage~\cite{klimovic:asplos2017-reflex, klimovic:eurosys16-disagg}, a model
 that uses software as the control plane and reduces the CPU requirements of
-devices, is result of prognoses we are heading towards data centers that need
+devices, is a result of prognoses we are heading towards data centers that need
 to provision a CPU per storage device~\cite{samuels:oss16}. Regardless of where
 the future leads, the scale and complexity of software will continue to scale
 with the size of the architectures they manage.
 
 % Timeliness: oss faciliates transparency {vendor lock in, efficiency, collab}
-Finally, the last trend that has lead to the explosion of software is
-open-source software. Open-source software is gaining traction because it helps
-consumers avoid vendor lock in, it leads to more efficient implementations, and
-it encourages collaboration. All these advantages are rooted in transparency,
-as developers can work together to write code that manages the extreme
-heterogeneity mentioned above, but it also lets developers see the source code
-for the systems they use ``off-the-shelf". In short, open-source software leads
-to more software because (1) code can come from different domains,
-organizations, and communities, and (2) it easier to write optimizations
-because functionality is fully exposed.
+\textbf{Open-source Sofware}: Open-source software is gaining traction because
+it helps consumers avoid vendor lock in, it leads to more efficient
+implementations, and it encourages collaboration. All these advantages are
+rooted in transparency, as developers can work together to write code that
+manages the extreme heterogeneity mentioned above, but it also lets developers
+see the source code for the systems they use ``off-the-shelf". In short,
+open-source software leads to more software because code can come from
+different domains, organizations, and communities, and it is easier to write
+optimizations for layers that are are fully exposed.
 
-In light of these trends, our solution is a concept called ``programmable
+The software stacks produced by these trends have reduced performance,
+duplicated functionality, and longer code paths.  The overhead of these stacks
+are so high that many workloads can be outperformed by a single, scale-up node
+with less resources~\cite{sevilla:discs2013-framework,
+rowstron:hotcdp2012-hadoop-vs-single-node, schwarzkopf:hotcloud2012-7-sins,
+gigaspaces:whitepaper2011-su-vs-so, michael:2007pdps-scale-up-x-scale-out}.  In
+light of these trends, our solution is a concept called ``programmable
 storage"~\cite{sevilla:eurosys17-malacology, watkins:hot17-declstor}.
 Programmable storage facilitates the re-use and extension of existing storage
 abstractions provided by the underlying software stack, to enable the creation
-of new services via composition. This process is faster than reducing layers
-manually for new architectures with less layers~\cite{bent:login16-hpc-trends}
-that may break backwards compatibility.  We add interfaces {\it into} a storage
-system's internal functionality to facilitate application co-design, leading to
-more efficient implementations that inherit the robustness of the underlying
-system with less code duplication. This thesis uses the programmable storage
-approach to embed policy engines into file system metadata substrates to
-control the behavior, performance, and transparency of the entire software
-stack.
+of new services via composition. This development process is faster than
+reducing layers manually for new architectures with less
+layers~\cite{bent:login16-hpc-trends} that may break backwards compatibility.
+We add interfaces {\it into} a storage system's internal functionality to
+facilitate application co-design, leading to more efficient implementations
+that inherit the robustness of the underlying system with less code
+duplication. This thesis uses the programmable storage approach to embed policy
+engines into file system metadata substrates to control the behavior,
+performance, and transparency of the entire software stack.
 
 \section{Contributions}
 
 This thesis argues that the programmable storage approach is the correct model
-for scaling global namespaces and designing policies effective file system
+for scaling global namespaces and designing effective file system
 metadata management policies. We design policies for three metadata management
 techniques: subtree load balancing, subtree semantics, and implied subtrees.
 The first two expand on a strong foundation of related work while the third is
@@ -98,10 +98,12 @@ subtree to a create- heavy application, we show 8× speedup and can scale to
 2\(\times\) as many clients when compared to our baseline system.
 
 Third, we present Tintenfisch, a programmable file system that generates
-namespaces automatically. Clients and servers are injected with a function that
-describes the size and structure of a subtree and metadata is lazily populated.
-This reduces the number RPCs as clients/servers need not exchange messages to
-maintain consistency.
+namespaces automatically. We introduce namespace generators and schemas to
+describe file system metadata structure in a compact way. If clients and
+servers can express the namespace in this way, they can compact metadata,
+modify large namespaces more quickly, and generate only relevant parts of the
+namespace. The result is less network traffic, storage footprints, and overall
+metadata operations.
 
 These contributions have mostly been prototyped on Ceph. Mantle was merged into
 Ceph and funded by the Center for Research in Open Source Software and Los
@@ -109,45 +111,50 @@ Alamos National Laboratory. Malacology and Mantle were featured in the Next
 Platform magazine and the 2017 Lua Workshop. Finally, Malacology and Cudele are
 the first Popper-compliant conference papers.
 
-\section{Research questions}
+\section{Outline}
 
-Programmable storage attempts to answer answer important data management
-questions such as ``how does the workload affect where/when I move resources"
-and ``how does the system's parameters affect when I move things". This project
-will address the following general load balancing topics:
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=1\textwidth]{./chapters/overview.png}
+  \caption{An outline of this thesis.}
+  \label{fig:thesis-overview}
+\end{figure}
 
-\subsection*{Which metrics do we use?}
+An outline of the thesis is shown in Figure~\ref{fig:thesis-overview}.
 
-To properly balance load, we have to know which metrics are important and how
-they represent the state of the system. This requires understanding what
-metrics are available and how to collect them. The balancer also needs to know
-how the metrics are related to each other.
+Chapter~\ref{chp:related-work} discusses the file system metadata management
+problem and shows why today's jobs impose these types of workloads. We also
+survey related work for providing scalability while enforcing POSIX IO
+semantics. Chapter~\ref{chp:prototyping-platform} describes our prototyping
+platform, Ceph, and the interfaces we added to create a programmable storage
+system called Malacology.
 
-\subsection*{How do we quantify performance?}
+Chapter~\ref{chp:mantle} describes the Mantle environment and API for load
+balancing subtrees across a metadata cluster. We motivate the framework by
+measuring the advantages of file system workload locality and examining the
+current CephFS implementation designed in~\cite{weil:osdi2006-ceph,
+weil:sc2004-dyn-metadata}. We show that the framework can replicate techniques
+from related work and show load balancers that work well for different
+workloads. Chapter~\ref{chp:mantle-beyond} shows the generality of the approach
+by using the Mantle API for load balancing in ZLog, an implementation of the
+CORFU~\cite{balakrishnan_corfu_2012} API on Ceph, and for cache management in
+ParSplice~\cite{perez:jctc20150parsplice}, a molecular dynamics simulation
+developed at Los Alamos National Laboratory.
 
-After isolating the important metrics, the balancer needs to understand how the
-metrics affect the global performance and behavior. This requires understanding
-how over-utilized resources negatively affect performance and how system events
-can indicate that the system is performing optimally.
+Chapter~\ref{chp:cudele} describes the Cudele API and framework for relaxing
+consistency and durability semantics in a global file system namespace. We
+focus on the building blocks called mechanisms and show how administrators can
+build application-specific subtrees.  We motivate Cudele by measuring the POSIX
+IO overheads using CephFS and by examining current workloads in HPC and
+Hadoop/Spark. The microbenchmarks show the performance of individual mechanisms
+while the macrobenchmarks model real-world use cases.
 
-\subsection*{What do we optimize?}
+Chapter~\ref{chp:tintenfisch} describes Tintenfisch, which lets clients and
+servers generate subtrees to reduce network traffic, storage footprints, and
+file system metadata load. We examine three motivating examples from three
+different domains: high performance computing, high energy physics, and large
+scale simulations. We then present namespace schemas for categorizing file
+system metadata structure and namespace generators for compacting metadata.
 
-Once we have the metrics and understand how they connect to performance, we
-will identify which metrics to optimize for in our load balancer. To do this,
-we must understand the trade-offs of optimizing each metric. Specifically, we
-must quantify how optimizing for one metric affects the other metrics in the
-system. This will involve solving a multi-objective optimization problem. 
+Chapter~\ref{chp:conclusion} concludes and outlines future work.
 
-\subsection*{Which heuristics are successful?}
-
-Finally, when we know what to optimize for, we will apply different heuristics
-to resolve the optimization trade-offs. This will introduce problems that
-mirror other distributed systems problems, such as:
-
-\begin{itemize}
-	\item aggressive vs. hesitant migrations	
-	\item centralized vs. decentralized knowledge
-	\item small vs. large migration units
-	\item accurate vs. fast decision-making
-	\item learning vs. forgetting rate
-\end{itemize}
