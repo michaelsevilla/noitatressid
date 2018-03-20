@@ -8,11 +8,11 @@ Systems that process and store large amounts of data (petabytes and beyond) are
 difficult to manage. Administrators fail to keep up with today's workloads
 because data is too large, software is too complicated, hardware is too fast,
 and events are too frequent. The unmanageable nature of these hardware and
-software stacks is a result of abstracting away complexity using layers. This
-has been a boon to software because developers can focus on areas of their own
-expertise, but three trends have broken this programming model and proliferated
-unmanageable stacks: (1) more data, (2) extreme heterogeneity, and (3)
-open-source software. 
+software stacks is a result of abstracting away complexity using layers. Black
+box abstraction has been a boon to software because developers can focus on
+areas of their own expertise, but three trends have broken this programming
+model and proliferated unmanageable stacks: (1) more data, (2) extreme
+heterogeneity, and (3) open-source software. 
 
 % Timeliness: layers on layers; {big stacks, overhead, proof}
 \textbf{More Data}: The overwhelming volume, velocity, and veracity of today's
@@ -33,10 +33,10 @@ software runtimes, which must now manage large numbers of heterogeneous
 devices. The increasing momentum behind disaggregated
 storage~\cite{klimovic:asplos2017-reflex, klimovic:eurosys16-disagg}, a model
 that uses software as the control plane and reduces the CPU requirements of
-devices, is a result of prognoses we are heading towards data centers that need
-to provision a CPU per storage device~\cite{samuels:oss16}. Regardless of where
-the future leads, the scale and complexity of software will continue to scale
-with the size of the architectures they manage.
+devices, is a result of prognoses that we are heading towards data centers that
+need to provision a CPU per storage device~\cite{samuels:oss16}. Regardless of
+where the future leads, the scale and complexity of software will continue to
+scale with the size of the architectures they manage.
 
 % Timeliness: oss faciliates transparency {vendor lock in, efficiency, collab}
 \textbf{Open-source Sofware}: Open-source software is gaining traction because
@@ -49,10 +49,10 @@ open-source software leads to more software because code can come from
 different domains, organizations, and communities, and it is easier to write
 optimizations for layers that are are fully exposed.
 
-The software stacks produced by these trends have reduced performance,
-duplicated functionality, and longer code paths.  The overhead of these stacks
-are so high that many workloads can be outperformed by a single, scale-up node
-with less resources~\cite{sevilla:discs2013-framework,
+The stacks produced by these trends have longer code paths, duplicated
+functionality, and lower performance.  The overhead of these stacks are so
+high that many workloads can be outperformed by a single, scale-up node with
+less resources~\cite{sevilla:discs2013-framework,
 rowstron:hotcdp2012-hadoop-vs-single-node, schwarzkopf:hotcloud2012-7-sins,
 gigaspaces:whitepaper2011-su-vs-so, michael:2007pdps-scale-up-x-scale-out}.  In
 light of these trends, our solution is a concept called ``programmable
@@ -74,7 +74,7 @@ performance, and transparency of the entire software stack.
 This thesis argues that the programmable storage approach is the correct model
 for scaling global namespaces and designing effective file system
 metadata management policies. We design policies for three metadata management
-techniques: subtree load balancing, subtree semantics, and implied subtrees.
+techniques: subtree load balancing, subtree semantics, and subtree schemas.
 The first two expand on a strong foundation of related work while the third is
 a novel idea.
 
@@ -94,8 +94,10 @@ the same namespace, allowing users to optimize subtrees over time and space for
 different workloads. We confirm the performance benefits of techniques
 presented in related work but also explore new consistency/durability metadata
 designs, all integrated over the same storage system. By custom fitting a
-subtree to a create- heavy application, we show 8× speedup and can scale to
-2\(\times\) as many clients when compared to our baseline system.
+subtree to a create-heavy application, we we show performance improvements when
+we custom fit subtree semantics to applications such as checkpoint-restart
+(91.7\(\times\) speedup), user home directories (0.03 standard deviation from
+optimal), and users checking for partial results (2\% overhead).
 
 Third, we present Tintenfisch, a programmable file system that generates
 namespaces automatically. We introduce namespace generators and schemas to
