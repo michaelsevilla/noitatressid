@@ -3,19 +3,42 @@
 \chapter{Introduction}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Problem: large systems are difficult to manage
-Systems that process and store large amounts of data (petabytes and beyond) are
-difficult to manage. Administrators fail to keep up with today's workloads
-because data is too large, software is too complicated, hardware is too fast,
-and events are too frequent. The unmanageable nature of these hardware and
-software stacks is a result of abstracting away complexity using layers. Black
-box abstraction has been a boon to software because developers can focus on
-areas of their own expertise, but three trends have broken this programming
-model and proliferated unmanageable stacks: (1) more data, (2) extreme
-heterogeneity, and (3) open-source software. 
+File system metadata management is difficult to scale. The attention that the
+topic has received, in both industry and academia, suggests the even decoupling
+metadata IO from data IO so that these services can scale independently is
+insufficient for today's workloads.  Cutting-edge techniques for scaling file
+system metadata access are implemented in `clean-slate' file systems built from
+the ground up, so users that want to leverage techniques from different file
+systems must provision separate storage clusters. Adding software layers to the
+compute stack in this way complicates system management because administrators
+must now (1) configure data migrations across file system boundaries and (2)
+compare file system metadata management techniques, which includes
+understanding implementations and benchmarking systems with the workload.
+Alternatively, developers can integrate multiple techniques into an existing
+file system and expose configuration parameters to let users select metadata
+management strategies. While this lets users compare techniques and minimizes
+data movement, it further increases the size of the stack because software
+layers are larger and their internals are more complex. This approach
+complicates system management because if techniques do not match the workload
+or a new technique becomes available, developers need to modify code, which
+takes time and jeopardizes robustness of the file system. 
 
+% Problem: large systems are difficult to manage
+%Systems that process and store large amounts of data (petabytes and beyond)
+%are difficult to manage. 
+
+The layering problem is getting worse because of the trends of modern
+computing: data is too large, software is too complicated, hardware
+characteristics are changing too fast, and events are too frequent. The
+unmanageable nature of these hardware and software stacks is a result of
+abstracting away complexity using layers. Black box abstraction has been a boon
+to software because developers can focus on areas of their own expertise, but
+three trends have broken this programming model and proliferated unmanageable
+stacks:
+
+\begin{itemize}
 % Timeliness: layers on layers; {big stacks, overhead, proof}
-\textbf{More Data}: The overwhelming volume, velocity, and veracity of today's
+\item \textbf{More Data}: The overwhelming volume, velocity, and veracity of today's
 data shapes modern software. When data grows too large, we scale to larger
 systems, either by scaling out or scaling up. Focusing on the scale-out model
 has given birth to stacks, like Apache, that are used in industry,
@@ -24,7 +47,7 @@ complexity, as code bases are larger and more
 layered~\cite{sevilla:eurosys17-malacology}.
 
 % Timeliness: extreme hetoregeneity {memory wall, more hardware, more runtimes}
-\textbf{Extreme Heterogeneity}: Increased heterogeneity in software and
+\item \textbf{Extreme Heterogeneity}: Increased heterogeneity in software and
 hardware requires large stacks just to manage resources.  Data centers are
 larger and have faster devices because device and network speeds are scaling
 much faster than DRAM speeds. The so-called memory
@@ -39,7 +62,7 @@ where the future leads, the scale and complexity of software will continue to
 scale with the size of the architectures they manage.
 
 % Timeliness: oss faciliates transparency {vendor lock in, efficiency, collab}
-\textbf{Open-source Sofware}: Open-source software is gaining traction because
+\item \textbf{Open-source Sofware}: Open-source software is gaining traction because
 it helps consumers avoid vendor lock in, it leads to more efficient
 implementations, and it encourages collaboration. All these advantages are
 rooted in transparency, as developers can work together to write code that
@@ -48,6 +71,8 @@ see the source code for the systems they use ``off-the-shelf". In short,
 open-source software leads to more software because code can come from
 different domains, organizations, and communities, and it is easier to write
 optimizations for layers that are are fully exposed.
+
+\end{itemize}
 
 The stacks produced by these trends have longer code paths, duplicated
 functionality, and lower performance.  The overhead of these stacks are so
