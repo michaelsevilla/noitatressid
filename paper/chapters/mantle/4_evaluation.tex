@@ -174,18 +174,3 @@ The performance profile for the 5 MDS setups in Figure~\ref{figure:eval_spill-ev
 \noindent\textbf{Stability}: a fragmented namespace destroys locality and influences the standard deviation dramatically.\\
 \noindent\textbf{Overhead}: the gap between the 1 MDS curve and the MDS0 curve in the top graph in Figure~\ref{figure:eval_spill-evenly_compile} is the overhead of the balancing logic, which includes the migration decisions, sending heartbeats, and fragmenting directories. The effect is significant, costing almost 500 requests per second, but should be dulled with more MDS nodes if they make decisions independently.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Discussion and Future Work}
-\label{discussion-future-work}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-In this paper we only show how certain policies can improve or degrade performance and instead focus on how the API is flexible enough to express many strategies.  While we do not come up with a solution that is better than state-of-the-art systems optimized for file creates ({\it e.g.}, GIGA+), we do present a framework that allows users to study the emergent behavior of different strategies, both in research and in the classroom. In the immediate future, we hope to quantify the effect that policies have on performance by running a suite of workloads over different balancers. Other future endeavors will focus on:
-
-\textbf{Analyzing Scalability}: our MDS cluster is small, but today's production systems use metadata services with a small number of nodes (often less than 5)~\cite{website:ceph-cephfs-product-release}. Our balancers are robust until 20 nodes, at which point there is increased variability in client performance for reasons that we are still investigating. We expect to encounter problems with CephFS's architecture ({\it e.g.}, n-way communication and memory pressure with many files), but we are optimistic that we can try other techniques using Mantle, like GIGA+'s autonomous load splitting, because Mantle MDS nodes independently make decisions. 
-
-%Mantle has already exposed 2 performance deficiencies in CephFS, so it can also help improve metadata protocols and system architectures.	
-
-\textbf{Adding Complex Balancers}: the biggest reason for designing Mantle is to be able to test more complex balancers. Mantle's ability to save state should accommodate balancers that use request cost and statistical modeling, control feedback loops, and machine learning.
-
-\textbf{Analyzing Security and Safety}: in the current prototype, there is little safety - the administrator can inject bad policies ({\it e.g.}, \texttt{while 1}) that brings the whole system down. We wrote a simulator that checks the logic before injecting policies in the running cluster, but this still needs to be integrated into the prototype.
-
-

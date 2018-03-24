@@ -1,8 +1,8 @@
 % Title Stuff
-\title{Scalable, Global Namespaces with Programmable Storage}
+\title{Scalable, Global Namespaces\\with Programmable Storage}
 \author{Michael A. Sevilla}
-\degreeyear{2014}
-\degreemonth{June}
+\degreeyear{2018}
+\degreemonth{April}
 \degree{DEFENSE}
 \chair{Professor Carlos Maltzahn}
 \committeememberone{Professor Scott Brandt}
@@ -18,28 +18,87 @@
 \begin{frontmatter}
 	\maketitle\copyrightpage\tableofcontents\listoffigures\listoftables
 	\begin{abstract}
-	  lorem ipsum
-	\end{abstract}
-	%\begin{dedication}
-	%	\null\vfil
-	%	{\large
-	%	\begin{center}
-	%		To myself,\\\vspace{12pt}
-	%		Perry H. Disdainful,\\\vspace{12pt}
-	%		the only person worthy of my company.
-	%	\end{center}}
-	%	\vfil\null
-	%\end{dedication}
-	%\begin{acknowledgements}
 
-\vspace*{\fill}
-\noindent This thesis is dedicated to my parents Ed and Barb; we made it.
-\begin{itemize}
-  \item[] To my older sister Kimmy because she paved the way.
-  \item[] To my younger sister Maggie because I look up to her.
-  \item[] To Kelley and the love she poured into this relationship... crescit eundo.
-\end{itemize}
-\vspace*{\fill}
-  
-	%%\end{acknowledgements}
+State-of-the-art file system metadata management techniques are often
+integrated into `clean-slate' file systems built from the ground up. Developers
+can integrate new techniques into an existing file system (as they become
+available) but this approach exposes confusing configurations to the user and
+is not future-proof as code needs to be changed, which jeopardizes the
+system's robustness. `Clean-slate' file systems and the rapid integration of
+new features adds large software layers to the stack, which degrades
+performance, reduces efficiency, and increases complexity. The time is ripe for
+a new solution that avoids layering, especially in light of growing data set
+sizes, increasing hardware/software heterogeneity, and the rise of open-source
+software.
+
+This thesis shows how to make global namespaces scalable using a `programmable
+storage' approach. We add interfaces to the storage system so administrators
+can compose functionality together to build higher-level services and
+applications. The dissertation discusses the design, implementation, and
+evaluation of three programmable file system metadata management systems:
+Mantle, a programmable file system metadata load balancer, Cudele, an API and
+framework for programmable consistency and durability in a global namespace,
+and Tintenfisch, a system that facilitates namespace schemas and namespace
+generators for structured metadata.
+
+Each system is implemented on CephFS, providing state-of-the-art file system
+metadata management techniques to a leading open-source project. We have had
+numerous collaborators and co-authors from the CephFS team and hope to build a
+community around our programmable storage systems.
+
+	\end{abstract}
+	\begin{dedication}
+                \vspace*{\fill}
+                \noindent This thesis is dedicated to my parents Ed and Barb; we made it.
+                \begin{itemize}
+                  \item[] To my older sister Kimmy because she paved the way.
+                  \item[] To my younger sister Maggie because I look up to her.
+                  \item[] To Kelley, for believing in and cherishing our  relationship... crescit eundo.
+                \end{itemize}
+                \vspace*{\fill}
+		%\null\vfil
+		%{\large
+		%\begin{center}
+			%To myself,\\\vspace{12pt}
+			%Perry H. Disdainful,\\\vspace{12pt}
+			%the only person worthy of my company.
+		%\end{center}}
+                %}
+		%\vfil\null
+	\end{dedication}
+	\begin{acknowledgements}
+
+I thank my advisor, Carlos Maltzahn, for his support and enthusiasm. His
+academic acumen made me a better researcher but his capacity for understanding
+my emotions and needs helped him shape me into a better person. I also thank
+Scott Brandt and Ike Nassi for sparking my interest in systems and Peter Alvaro
+for ushering me to the finish line.
+
+I would also like to thank Shel Finkelstein and Jeff LeFevre for providing the
+proper motivation and context for the work, especially in relation to database
+theory. Thanks to Kleoni Ioannidou for helping me in a field that she was new
+to herself. She is a magnificent influence.
+
+To Sam Fineberg and Bob Franks, I thank you for the real-world tough love and
+attention to my pursuits outside of HPE. I learned so much about myself during
+those three years working for you both. To Brad Settlemyer, I thank you for
+believing in Mantle and its impact, even when I did not.
+
+To my RedHat colleagues, Sage Weil, Greg Farnum, John Spray, and Patrick
+Donnelly. Thank you for co-authoring papers and reading terrible drafts. I
+enjoyed working with you all.
+
+Finally, to my peers in the Systems Research Lab, Noah Watkins and Ivo Jimenez:
+thank you for helping me craft this thesis; but more importantly for your
+companionship. I think we did magnficient work and convinced the world that
+what we are working on matters.  The teamwork manifested in top publications
+that I never thought possible. I also thank Joe Buck, Dimitris Skourtis, Adam
+Crume, Andrew Shewmaker, Jianshen Liu, and Reza Nasirigerdeh for their helpful
+suggestions and feedback.
+
+This work was supported by the Center for Research in Open-Source Software
+(\href{www.cross.soe.ucsc.edu}{CROSS}), the Department of Energy, the National
+Science Foundation, and Los Alamos National Laboratories.
+
+	\end{acknowledgements}
 \end{frontmatter}

@@ -1,2 +1,168 @@
 \chapter{Conclusion}
 \label{chp:conclusion}
+
+We conclude this thesis with related work and a summary of our findings.
+
+\section{Future Work}
+
+The design and implementations for this work are largely prototypes. The Mantle
+work was merged into Ceph but there are plenty of new balancing policies we
+would like to try.
+
+\subsection{Load Balancing with Mantle}
+
+In the Mantle chapter we only show how certain policies can improve or degrade
+performance and instead focus on how the API is flexible enough to express many
+strategies.  While we do not come up with a solution that is better than
+state-of-the-art systems optimized for file creates ({\it e.g.}, GIGA+), we do
+present a framework that allows users to study the emergent behavior of
+different strategies, both in research and in the classroom. In the immediate
+future, we hope to quantify the effect that policies have on performance by
+running a suite of workloads over different balancers. Other future endeavors
+will focus on:
+
+\textbf{Analyzing Scalability}: our MDS cluster is small, but today's
+production systems use metadata services with a small number of nodes (often
+less than 5). Our balancers are robust until 20 nodes, at which point there is
+increased variability in client performance for reasons that we are still
+investigating. We expect to encounter problems with CephFS's architecture ({\it
+e.g.}, n-way communication and memory pressure with many files), but we are
+optimistic that we can try other techniques using Mantle, like GIGA+'s
+autonomous load splitting, because Mantle MDS nodes independently make
+decisions. 
+
+%Mantle has already exposed 2 performance deficiencies in CephFS, so it can
+%also help improve metadata protocols and system architectures.	
+
+\textbf{Adding Complex Balancers}: the biggest reason for designing Mantle is
+to be able to test more complex balancers. Mantle's ability to save state
+should accommodate balancers that use request cost and statistical modeling,
+control feedback loops, and machine learning.
+
+\textbf{Analyzing Security and Safety}: in the current prototype, there is
+little safety - the administrator can inject bad policies ({\it e.g.},
+\texttt{while 1}) that brings the whole system down. We wrote a simulator that
+checks the logic before injecting policies in the running cluster, but this
+still needs to be integrated into the prototype.
+
+%more complicated balancers
+%deep dive on CephFS metadata protocols
+%run policies on other components/systems
+
+The ZLog sequencer balancing and ParSplice cache management work lays the
+foundation for future work, where we will focus on formalizing a collection of
+general data management policies that can be used across applications and
+storage systems.  The value of such a collection eases the burden of policy
+development and paves the way for automated solutions such as (1) adaptable
+policies that switch to new strategies when the current strategy behaves poorly
+({\it e.g.}, thrashing, making no progress, etc.), and (2) policy generation,
+where new policies are constructed by examining the collection of existing
+policies.  Ultimately, we hope that this automation enables control of policies
+by machines instead of administrators. 
+
+\subsection{Subtree Semantics with Cudele}
+%This approach is superior to mounting different storage systems in a global
+%namespace because there is no need to provision dedicated storage clusters to
+%applications or move data between these systems.  
+Cudele prompts many avenues for future work.  First is to co-locate HPC
+workflows with real highly parallel runtimes from the cloud in the same
+namespace. This setup would show how Cudele reasonably incorporates both programming
+models (client-driven parallelism and user-defined workflows) at the same time
+and should show large performance gains.  Second is dynamically changing
+semantics of a subtree from stronger to weaker guarantees (or vice versa). This
+reduces data movement across storage cluster and file system boundaries so
+the results of a Hadoop job do not need to be migrated into CephFS for
+other processing; instead the \oldcomment{user}\newcomment{administrator} can
+change the semantics of the HDFS subtree into a CephFS subtree, which may cause
+metadata/data movement to ensure strong consistency. Third is embeddable
+policies, where child subtrees have specialized features but still maintain
+guarantees of their parent subtrees.  For example, a RAMDisk subtree is POSIX
+IO-compliant but relaxes durability constraints, so it can reside under a POSIX
+IO subtree alongside a globally durable subtree.
+
+%Finally, our prototype enables
+%performance prediction because it helps administrators quantify the costs of
+%each mechanism (similar to Section~\S\ref{sec:microbenchmarks}).
+
+%Applications can use Cudele to microbenchmark their components and software,
+%similar to what we did in 
+
+%Using those
+%results, they can predict how much slower their system will be if they adopt
+%stronger consistency or durability.  This is a form of co-design that takes a
+%``dirty-slate" approach but building just the guarantees the application needs
+%from existing implementations.  
+%This can also be a verification tool where performance that varies wildly from
+%the predicted performance can be a red flag that something is wrong or that
+%the bottleneck is not in the consistency or durability plane.
+
+
+
+% Implied Namespaces
+
+% Intermediate Update Bursts
+
+% See if this helps load balancing
+
+% executing mechanisms in parallel
+
+\subsection{Subtree Schemas with Tintenfisch}
+
+In a sense, the subtree schemas and generator work presented in the Tintenfisch
+chapter is the most incomplete. The first step would be to design, test, and
+benchmark the generators we outlined for the three use cases in high
+performance computing, high energy physics, and large scale simulations.
+Resource utilization profiles for network and disk bandwidth would provide the
+most insights. Bolder avenues of future work include generating mappings of
+names to data. For example, instead of generating file system namespaces, we
+could use the same concept to change striping strategies for individual files,
+altering things such as object size, location, or naming convention. Such an
+implementation would help users move data amongst storage systems so they
+could, for example, move data from CephFS to Lustre. Finally, we want to use
+the namespace schema framework to generate application-specific metadata to
+encompass domains that need metadata tagging, like for simulations that Empress
+targets.
+
+\section{Summary}
+
+Scalable file system metadata techniques exist but they are implemented as
+`clean-slate' file systems built from the ground up. Developers can integrate
+techniques into their file system as they become available, but changing code
+is not trivial and jeopardizes the robustness of the system. Both techniques
+create large software stacks, which reduces performance, degrades efficiency,
+and increases complexity. The time is ripe, especially with the advent of
+workloads with big data, extremely heterogeneous computing environments, and
+open-source software, for a programmable storage system approach. We present
+programmable file system interfaces implemented on CephFS, that facilitate
+application-specific knowledge by allowing administrators to compose building
+blocks.
+
+Mantle is a programmable metadata load balancer for CephFS
+(Chapter~\ref{chp:mantle}) but has been shown to be effective for other domains
+and workloads (Chapter~\ref{chp:mantle-beyond}). For file systems we test three
+policies from related work and show how the framework and specification is
+effective for succinctly expressing load balancing policies over the same
+storage system. For other domains, we show how the Mantle API and framework can
+be used to migrate ZLog sequencers and manage ParSplice caches. The goal is to
+build a general load balancing library that can be used across domains and
+workloads.
+
+Cudele is an API and framework for programmable consistency and durability
+(Chatper~\ref{chp:cudele}). We show how different file system semantics,
+ranging from POSIX IO to decoupled namespaces, can co-exist in the same global
+namespace. We show how our prototype can realize strong/weak/invisible
+consistency and global/local/no durability.
+
+Finally, Tintenfisch shows how namespace schemas and generators can make global
+namespaces even more scalable (Chapter~\ref{chp:tintenfisch}). The read
+problem, namely the management, transfer, and materialization of file system
+metadata, can be addressed by categorizing and generating namespaces. We
+examine three different domains (high performance computing, high energy
+physics, and large scale simulations) and show how the namespaces have
+structure. We also propose 3 example namespace generators (formula, code, and
+pointer) that fit the applications in these domains.
+
+This thesis shows that global namespaces can be scalable if designed correctly,
+using the programmable storage approach. Our evaluations range from
+microbenchmarks to real-world use cases and demonstrate a future-proof
+approach.
