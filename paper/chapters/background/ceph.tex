@@ -24,12 +24,12 @@ to RADOS so it can periodically flush its state. The CephFS components,
 including RADOS, the MDS cluster, and the logical namespace, are shown
 Figure~\ref{ceph-arch}. 
 
-\begin{figure*}[tbh]
+\begin{figure*}[t]
 \centering
-	\includegraphics[width=1\textwidth]{./chapters/advancement/figures/ceph-arch.png} 
+	\includegraphics[width=0.7\textwidth]{./chapters/advancement/figures/ceph-arch.png} 
 
-	\caption{\textbf{MDS cluster}: in CephFS, the clients interact with a
-        MDS cluster for all metadata operations. The MDS cluster exposes a hierarchal
+	\caption{In CephFS, the clients interact with a metadata server (MDS)
+        cluster for all metadata operations. The MDS cluster exposes a hierarchical
         namespace using a technique called dynamic subtree partitioning, where each MDS
         manages a subtree in the namespace.\label{ceph-arch}}
 

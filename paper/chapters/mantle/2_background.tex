@@ -30,17 +30,17 @@ Each balancer constructs a local view of the load by identifying popular subtree
 \subsection{Advantages of Locality}
 \label{advantages_of_locality}
 %%%%%%%%%%
-\begin{figure*}[tbh]
-	\begin{subfigure}[H]{0.45\textwidth}
+\begin{figure*}[tb]
+	\begin{subfigure}[H]{0.47\textwidth}
 		\centering	
-	\caption{The number of requests for the compile job.  \label{figure:workload-tar-requests-total}}
-		
-\includegraphics[width=1\textwidth]{./chapters/mantle/figures/workload-tar-requests2.png}
+		\caption{\# of reqs for compile job.}
+		\label{figure:workload-tar-requests-total}
+		\includegraphics[width=1\textwidth]{./chapters/mantle/figures/workload-tar-requests2.png}
 	\end{subfigure}
-	~
 	\begin{subfigure}[H]{0.47\textwidth}
 		\centering
-		\caption{Path traversals ending in hits (local metadata) and forwards. \label{figure:workload-tar-traverses}}	
+		\caption{Traversals ending in hits/forwards.}
+		\label{figure:workload-tar-traverses}
 	\includegraphics[width=1\textwidth]{./chapters/mantle/figures/workload-tar-traverses2.png}
 	\end{subfigure}	
 	\caption{Spreading metadata to multiple MDS nodes hurts performance (``spread evenly/unevenly" setups in Figure 3a) when compared to keeping all metadata on one MDS (``high locality'' setup in Figure 3a). The times given are the total times of the job (compile, read, write, etc.). Performance is worse when metadata is spread unevenly because it ``forwards" more requests (Figure 3b).\label{figure:workload-tar-requests}}
@@ -140,7 +140,7 @@ The other approach for setting policies is to hard-code the policies into the sy
 % /user/msevilla/results/1mds/sepdir/graphs/images/create-latency-throughput.pdf
 \begin{figure}[tb]
 	\centering
-	\includegraphics[width=0.75\textwidth]{./chapters/mantle/figures/creates-latency-thruput-clients.pdf}
+	\includegraphics[width=0.7\textwidth]{./chapters/mantle/figures/creates-latency-thruput-clients.pdf}
     \caption{For the create heavy workload, the throughput ({\it x} axis) stops improving and the latency ({\it y} axis) continues to increase with 5, 6, or 7 clients. The standard deviation also increases for latency (up to 3\(\times\)) and throughput (up to 2.3\(\times\)). \label{figure:creates-latency-thruput-clients}} 
 \end{figure}
 

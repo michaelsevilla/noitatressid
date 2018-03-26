@@ -10,10 +10,10 @@ on parallelizing work and synchronizing access to the metadata. A popular
 approach is to encourage independent growth and reduce communication, using
 techniques like lazy client and MDS synchronization~\cite{patil:fast2011-giga+,
 ren:sc2014-indexfs, zheng:pdsw2014-batchfs, hildebrand:msst2005-pnfs,
-zhu:pds2008-hba}, inode path/permission caching~\cite{brandt:mss2003-lh,
+zhu:pds2008-hba}, inode path/permission caching~\cite{brandt:msst2003-lh,
 li:msst2006-dynamic, xing:sc2009-skyfs}, locality-aware/inter-object
 transactions~\cite{sinnamohideen:atc2010-ursa,zhu:pds2008-hba,ren:atc2013-tablefs,
-ren:sc2014-indexfs} and efficient lookup tables~\cite{brandt:mss2003-lh,
+ren:sc2014-indexfs} and efficient lookup tables~\cite{brandt:msst2003-lh,
 zhu:pds2008-hba}. Despite having mechanisms for migrating metadata, like
 locking~\cite{sinnamohideen:atc2010-ursa,schmuck:fast2002-gpfs}, zero copying
 and two-phase commits~\cite{sinnamohideen:atc2010-ursa}, and directory
