@@ -1,17 +1,3 @@
-%\subsection{Trajectory Length}
-%
-%\subsection{Cloud Techniques: Elastic Search}
-%
-%What if we re-provision resources in response to events outside the
-%application's control, such as a slow Lustre.
-%
-%\subsection{Future work}
-%
-%How Much: cache policy from past, regime detection, Belady's Min
-\section{Domain 2: Evaluation}
-\subsection{Storage System Architecture Knowledge}
-\label{sec:arch-specific}
-
 Using the Mantle policy engine, we test a variety of cache management 
 algorithms on the worker using the keyspace analysis in
 Section~\S\ref{sec:parsplice-keyspace-analysis}.  Our evaluation uses the total
@@ -104,7 +90,9 @@ policies saves the most memory without sacrificing performance.
 %Figure~\ref{fig:methodology-tradeoff}.  \label{src:lru}} \end{figure}
 
 % why is the performance lower for smaller caches?
-But the top graph in Figure~\ref{fig:motivation-regimes} suggests that a
+\subsection{Storage System-Specific Policy}
+\label{sec:arch-specific}
+The top graph in Figure~\ref{fig:motivation-regimes} suggests that a
 smaller cache size should suffice, as only 100 keys seem to be active at any
 one time.  It turns out that the unique keys plotted in
 Figure~\ref{fig:motivation-regimes} are per second and are not representative
@@ -158,7 +146,7 @@ hour run.  To improve the policy even more, we need a way to identify what
 thresholds to use for different system setups ({\it e.g.}, different ParSplice
 parameters, number of worker tasks, and job lengths).  
 
-\subsection{Application-Specific Knowledge}
+\subsection{Application-Specific Policy}
 \label{sec:dom-specific}
 
 \begin{figure}[tb]
@@ -173,7 +161,7 @@ parameters, number of worker tasks, and job lengths).
 
 \begin{figure}[tb]
   \centering
-  \includegraphics[width=1\textwidth]{./chapters/controlplane/parsplice/figures/dscache-vs-none.png}\\
+  \includegraphics[width=0.7\textwidth]{./chapters/controlplane/parsplice/figures/dscache-vs-none.png}\\
   \caption{The performance/utilization for the dynamically sized cache
   (DSCache) policy. With negligible performance degradation, DSCache adjusts to
   different initial configurations (\(\Delta\)'s) and saves 3\(\times\) as much

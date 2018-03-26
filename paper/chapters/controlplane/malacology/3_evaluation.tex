@@ -1,4 +1,4 @@
-\section{Domain 1: Evaluation}
+\subsection{Sequencer Policy}
 \label{sec:evaluation} 
 
 \begin{figure}[t!]
@@ -28,8 +28,7 @@ improvement.}\label{fig:mantle-balancer-performance}
 
 The experiments are run on a cluster with 10 nodes to store objects, one node
 to monitor the cluster, and 3 nodes that can accommodate sequencers.  Instead
-of measuring contention at the clients like
-Section~\ref{sec:sequencer-implementation}, these experiments measure
+of measuring contention at the clients, these experiments measure
 contention at the sequencers by forcing clients to make round-trips for every
 request. We implement this using the Shared Resource interface that forces
 round-trips.  Because the sequencer's only function is to  hand out positions
@@ -55,7 +54,7 @@ Section~\ref{sec:feature-backoff} examines the slope and start time of the
 re-balancing phase between 0 and 60 seconds by comparing the aggressiveness of
 the balancers.
 
-\subsection{Feature: Balancing Modes}
+\subsection{``Balancing Modes" Policy}
 \label{sec:feature-balancing-modes}
 
 Next, we quantify the performance benefits shown in
@@ -142,7 +141,7 @@ less throughput than Sequencer 1. In this case, the scatter-gather process used
 for cache coherence in the metadata protocols causes strain on the server
 housing Sequencer 2 resulting in this uneven performance. 
 
-\subsection{Feature: Migration Units}
+\subsection{``Migration Units" Policy}
 \label{sec:feature-migration-units}
 
 Another factor that affects performance in this environment is how much load is
@@ -157,11 +156,10 @@ load on the current server, we can use: \texttt{ targets[whoami+1] =
 mds[whoami]["load"]/2 }.
 
 This code snippet uses globally defined variables and tables from the Mantle
-API~\cite{sevilla:sc15-mantle} to send half of the load on the current server
-(whoami) to the next ranked server (whoami + 1); the \texttt{targets} array is
-a globally defined table that the balancer uses to do the migrations.
-Alternatively, to migrate all load a time step, we can remove the division by
-2.
+API to send half of the load on the current server (whoami) to the next ranked
+server (whoami + 1); the \texttt{targets} array is a globally defined table
+that the balancer uses to do the migrations.  Alternatively, to migrate all
+load at a time step, we can remove the division by 2.
 
 %\begin{figure}[t!]
 %\centering
@@ -186,7 +184,7 @@ sequencer co-location or distribution across the cluster. This trade-off was
 explored extensively in the Mantle paper but the experiments we present here
 are indicative of an even richer set of states to explore.
 
-\subsection{Feature: Backoff}
+\subsection{``Backoff" Policy}
 \label{sec:feature-backoff}
 
 Tuning the aggressiveness of the load balancer decision making is also a
@@ -218,22 +216,3 @@ migration.  Behavior graphs and performance numbers for this backoff feature is
 omitted for space considerations, but our experiments confirm that the more
 conservative the approach the less overall throughput.
  
-\textbf{Malacology pulls} the load balancing service out of the storage system
-to balance sequencers across a cluster. This latent capability also gives
-future programmers the ability to explore the different load balancing
-trade-offs including: load balancing modes to control forwarding vs. client
-redirection, load migration units to control sequencer distribution vs.
-co-location, and backoffs to control conservative vs. aggressive decision
-making.
-
-%\subsubsection{Experiment: Object Class
-%Programmability}\label{experiment-object-class-programmability}
-%
-%Add quote from CORFU paper that talks about what they had to hack
-%
-%\subsubsection{Experiment: Multi-Client
-%Burstiness}\label{experiment-multi-client-burstiness}
-%
-%\begin{figure}[htbp] \centering
-%\includegraphics{./chapters/controlplane/malacology/figures/caps-delay-thruput.png} \caption{Forcing the client
-%to drop their capabilities later (delay) improves throughput} \end{figure}

@@ -1,44 +1,31 @@
 \chapter{Mantle Beyond Ceph}
 \label{chp:mantle-beyond}
 
-Mantle provides a control plane that injects policies into a running
-storage system, such as a file system or key-value store. While Mantle was
-originally designed for file system metadata load
-balancing~\cite{sevilla:sc15-mantle}, we find that it works surprisingly well
-for specifying cache management policies without requiring users to possess
-extensive knowledge about the internals of storage systems. 
-
-%  \item background: CephFS implementation
-To explore software-defined cache management, we use the data management
-language and policy engine presented in~\cite{sevilla:sc15-mantle}. The
-prototype in that paper, Mantle, was built on CephFS and lets administrators
-control file system metadata load balancing policies.  We now refer to Mantle
-as a policy engine that supports our data management language.  The basic
-premise is that data management policies can be expressed with a simple API
-consisting of ``when", ``where", and ``how much". The ``when" policy controls
-how aggressive or conservative the decisions are; ``where" controls how
-distributed or concentrated the data should be; and ``how much" controls the
-amount of data that should be sent. There is also a ``load" policy that lets
-administrators specify how to collapse many metrics into a single load metric
-({\it e.g.}, \(2\times\texttt{cpu} + 3\times\texttt{memory usage}\)).
-The succinctness of the API lets users inject multiple, possibly dynamic, policies. 
+While Mantle was originally designed for file systems, we find that it works
+surprisingly well for specifying general load balancing and cache management
+policies in different domains without requiring users to possess extensive
+knowledge about the internals of storage systems.  Therefore, in this chapter
+we argue that Mantle can be viewed as a control plane that injects policies
+into a running storage system, such as a file system or key-value store. Using
+the programmable storage approach, the Mantle API (``when", ``where", and ``how
+much") allows administrators to build application-specific storage stacks.
 
 \section{Extracting Mantle as a Library}
 \label{sec:extracting}
 
 We extracted Mantle as a library and Figure~\ref{fig:mantle} shows how it is
-linked into a storage system service.  Administrators write policies in Lua from whatever
-domain they choose ({\it e.g.}, statistics, machine learning, storage system)
-and the policies are embedded into the runtime by Mantle.  We chose Lua for
-simplicity, performance, and portability; it is a scripting language with
-simple syntax, which allows administrators to focus on the policies themselves;
-it was designed as an embeddable language, so it is lightweight and does less
-type checking; and it interfaces nicely with C/C++.  When the storage system makes
-decisions it executes the administrator-defined policies for when/where/how
-much and returns a decision.  To do this, the storage system needs to be modified to
-(1) provide an environment of metrics and (2) identify where policies are set.
-These modification points are shown by the colored boxes in
-Figure~\ref{fig:mantle} and described below.
+linked into a storage system service.  Administrators write policies in Lua
+from whatever domain they choose ({\it e.g.}, statistics, machine learning,
+storage system) and the policies are embedded into the runtime by Mantle.  We
+continue using Lua for simplicity, performance, and portability; the simple
+syntax lets administrators focus on the policies themselves; it was designed as
+an embeddable language, so it is lightweight and does less type checking; and
+it interfaces nicely with C/C++.  When the storage system makes decisions it
+executes the administrator-defined policies for when/where/how much and returns
+a decision.  To do this, the storage system needs to be modified to (1) provide
+an environment of metrics and (2) identify where policies are set.  These
+modification points are shown by the colored boxes in Figure~\ref{fig:mantle}
+and described below.
 
 \begin{figure}[t]
   \centering
@@ -68,7 +55,7 @@ Figure~\ref{fig:mantle} and described below.
   \caption{Types of metrics exposed by the storage system to the policy engine using Mantle.\label{table:metrics}}
 \end{table}
 
-\subsubsection{Environment of Metrics} storage systems expose \textbf{cluster} metrics
+\subsection{Environment of Metrics} Storage systems expose \textbf{cluster} metrics
 for describing resource utilizations and \textbf{time series} metrics for
 describing accesses to some data structure over time. Table~\ref{table:metrics}
 shows how these metrics are accessed from the policies written by
@@ -83,7 +70,7 @@ Figure~\ref{fig:mantle}. The measurements and exchange of metrics between
 servers is done by the storage system; Mantle in CephFS leverages metrics from other
 servers collected using CephFS's heartbeats.  For example, a policy written for
 an MPI-based storage system can access the CPU utilization of the first rank in a
-communication group using:
+communication group using:\\
 
 \begin{figure}[h]
 \footnotesize
@@ -99,7 +86,7 @@ values, like accesses to a database or directory in the file system namespace.
 This decision limits the time series metrics to only include values from the
 {\it current} node, although this is not a limitation of Mantle itself.  For
 example, a policy that uses accesses to a directory in a file system as a
-metric for load collects that information using:
+metric for load collects that information using:\\
 
 \begin{figure}[h]
 \footnotesize
@@ -117,14 +104,12 @@ end
 
 
 % policies themselves
-\subsubsection{Policies Written as Callbacks} the ``callback" box in
+\subsection{Policies Written as Callbacks} The ``callback" box in
 Figure~\ref{fig:mantle} shows an example policy for ``when()", where the
 current server (\texttt{whoami}) migrates load if it is has load
 (\texttt{>0.1}) and if its neighbor server (\texttt{whoami + 1}) does not have
 load (\texttt{<0.1}). The load is calculated using the metrics provided by the
-environment.
-
-Mantle also provides functions for persisting state across decisions.
+environment. Mantle also provides functions for persisting state across decisions.
 \texttt{WRState(s)} saves state \texttt{s}, which can be a number or boolean
 value, and \texttt{RDState()} returns the state saved by a previous iteration.
 For example, a ``when" policy can avoid trimming a cache or migrating data if
