@@ -8,7 +8,7 @@ checkpointing~\cite{bent_plfs_2009} or scanning the file
 system~\cite{zheng:pdsw2014-batchfs}, contend for the same directories and
 inodes. Applications perform better with dedicated metadata
 servers~\cite{sevilla:sc15-mantle, ren:sc2014-indexfs} but provisioning a
-metadata server for every \newcomment{client}\footnote{In this paper, ``client"
+metadata server for every \newcomment{client}\footnote{In this section, ``client"
 is a storage client or application that interacts with the metadata server,
 ``administrator" is a system administrator that configures the storage, and
 ``end-users" interact with the file system via home directories or runtimes.  }
@@ -117,7 +117,7 @@ semantics over {\it time and space}, where subtrees can change their semantics
 and migrate around the cluster without ever moving the data they reference.}
 
 % Results
-The results in this paper confirm the assertions of ``clean-slate" research of
+The results in this section confirm the assertions of ``clean-slate" research of
 decoupled namespaces; specifically that these techniques drastically improve
 performance.  We go a step further by quantifying the costs of traditional file
 system approaches to maintaining consistency (3.37\(\times\) slowdown) and
