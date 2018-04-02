@@ -103,17 +103,18 @@ techniques: subtree load balancing, subtree semantics, and subtree schemas.
 The first two expand on a strong foundation of related work while the third is
 a novel idea.
 
-First, we present Mantle, a programmable file system metadata load balancer.
-To help decouple policy from mechanism, we introduce a programmable storage
-system that lets the designer inject custom balancing logic. We show the
-flexibility and transparency of this approach by replicating the strategy of a
-state-of-the-art metadata balancer and conclude by comparing this strategy to
-other custom balancers on the same system. We also show how the data management
-language and policy engine from Mantle turns out to be an effective control
-plane for managing ZLog sequencers and ParSplice caches.  
+First, we present a methodology for programmable load balancing policies for
+file system metadata.  To help decouple policy from mechanism, we introduce a
+programmable storage system, Mantle, that lets the designer inject custom
+balancing logic. We show the flexibility and transparency of this approach by
+replicating the strategy of a state-of-the-art metadata balancer and conclude
+by comparing this strategy to other custom balancers on the same system. We
+also show how the data management language and policy engine from Mantle turns
+out to be an effective control plane for managing ZLog sequencers and ParSplice
+caches.
 
-Second, we present Cudele, an API and framework for programmable consistency
-and durability in a global namespace. The system lets clients specify their
+Second, we present a methodology for programmable consistency and durability in
+a global namespace. Our prototype, Cudele, lets clients specify their
 consistency/durability requirements and dynamically assign them to subtrees in
 the same namespace, allowing users to optimize subtrees over time and space for
 different workloads. We confirm the performance benefits of techniques
@@ -124,13 +125,15 @@ we custom fit subtree semantics to applications such as checkpoint-restart
 (91.7\(\times\) speedup), user home directories (0.03 standard deviation from
 optimal), and users checking for partial results (2\% overhead).
 
-Third, we present Tintenfisch, a programmable file system that generates
-namespaces automatically. We introduce namespace generators and schemas to
-describe file system metadata structure in a compact way. If clients and
+Third, we present a methodology for generating namespaces automatically and
+lazily, without incurring the costs of traditional metadata management,
+transfer, and materialization.  We introduce namespace generators and schemas
+to describe file system metadata structure in a compact way. If clients and
 servers can express the namespace in this way, they can compact metadata,
 modify large namespaces more quickly, and generate only relevant parts of the
 namespace. The result is less network traffic, storage footprints, and overall
-metadata operations.
+metadata operations.  Our prototype, Tintenfisch, is a programmable file system
+that enables namespace generators.
 
 These contributions have mostly been prototyped on Ceph. Mantle was merged into
 Ceph and funded by the Center for Research in Open Source Software and Los
