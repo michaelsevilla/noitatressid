@@ -97,11 +97,14 @@ performance, and transparency of the entire software stack.
 \section{Contributions}
 
 This thesis argues that the programmable storage approach is the correct model
-for scaling global namespaces and designing effective file system
-metadata management policies. We design policies for three metadata management
+for scaling global namespaces and designing effective file system metadata
+management policies. We design policies for three metadata management
 techniques: subtree load balancing, subtree semantics, and subtree schemas.
 The first two expand on a strong foundation of related work while the third is
-a novel idea.
+a novel idea. Because we use the programmable storage approach, each system (1)
+is built by composing internal abstractions, (2) uses and re-uses existing
+functionality in the underlying file system, and (3) ends up with less layers
+than `clean-slate' approaches.
 
 First, we present a methodology for programmable load balancing policies for
 file system metadata.  To help decouple policy from mechanism, we introduce a
