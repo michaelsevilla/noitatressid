@@ -19,15 +19,15 @@ separate storage clusters. Adding software layers to the compute stack in this
 way complicates system management because administrators must now (1) configure
 data migrations across file system boundaries and (2) compare file system
 metadata management techniques, which includes understanding implementations
-and benchmarking systems with the workload.  Alternatively, developers can
-integrate multiple techniques into an existing file system and expose
-configuration parameters to let users select metadata management strategies.
-While this lets users compare techniques and minimizes data movement, it
-further increases the size of the stack because software layers are larger and
-their internals are more complex.  This approach complicates system management
-because if techniques do not match the workload or a new technique becomes
-available, developers need to modify code, which takes time and jeopardizes the
-robustness of the file system.
+and benchmarking systems with the workload.  Alternatively, developers that
+want the convenience of a single global namespaces can integrate multiple
+techniques into an existing file system and expose configuration parameters to
+let users select metadata management strategies.  While this lets users compare
+techniques and minimizes data movement, it further increases the size of the
+stack because software layers are larger and their internals are more complex.
+This approach complicates system management because if techniques do not match
+the workload or a new technique becomes available, developers need to modify
+code, which takes time and jeopardizes the robustness of the file system.
 
 As a result of this complexity and perceived scalability limitation,
 communities are abandoning global namespaces.  Our fundamental insight is that
@@ -54,8 +54,8 @@ balancing logic. We show the flexibility and transparency of this approach by
 replicating the strategy of a state-of-the-art metadata balancer and conclude
 by comparing this strategy to other custom balancers on the same system. We
 also show how the data management language and policy engine from Mantle turns
-out to be an effective control plane for managing ZLog sequencers and ParSplice
-caches.
+out to be an effective control plane for load balancing general and cache
+management.
 
 Second, we present a methodology for programmable consistency and durability in
 a global namespace. Our prototype, Cudele, lets clients specify their
@@ -79,11 +79,12 @@ namespace. The result is less network traffic, storage footprints, and overall
 metadata operations.  Our prototype, Tintenfisch, is a programmable file system
 that enables namespace generators.
 
-These contributions have mostly been prototyped on Ceph. Mantle was merged into
-Ceph and funded by the Center for Research in Open Source Software and Los
-Alamos National Laboratory. Malacology and Mantle were featured in the Next
-Platform magazine and the 2017 Lua Workshop. Finally, Malacology and Cudele are
-the first Popper-compliant conference papers.
+These contributions and their corresponding prototypes have received
+considerable attention in the community. Mantle was merged into Ceph and funded
+by the Center for Research in Open Source Software and Los Alamos National
+Laboratory; Malacology and Mantle were featured in the Next Platform magazine
+and the 2017 Lua Workshop; and Malacology, Cudele, and Tintenfisch are some of
+the first Popper-compliant~\cite{jimenez:ipdpsw17-popper} conference papers.
 
 \section{Outline}
 
@@ -97,7 +98,7 @@ the first Popper-compliant conference papers.
 An outline of the thesis is shown in Figure~\ref{fig:thesis-overview}.
 
 Chapter~\ref{chp:related-work} discusses the file system metadata management
-problem and shows why today's jobs impose these types of workloads. We also
+problem and shows why today's jobs incur these types of workloads. We also
 survey related work for providing scalability while enforcing POSIX IO
 semantics. Chapter~\ref{chp:prototyping-platform} describes our prototyping
 platform, Ceph, and the interfaces we added to create a programmable storage
@@ -117,9 +118,9 @@ developed at Los Alamos National Laboratory.
 
 Chapter~\ref{chp:cudele} describes the Cudele API and framework for relaxing
 consistency and durability semantics in a global file system namespace. We
-focus on the building blocks called mechanisms and show how administrators can
+focus on building blocks called mechanisms and show how administrators can
 build application-specific subtrees.  We motivate Cudele by measuring the POSIX
-IO overheads using CephFS and by examining current workloads in HPC and
+IO overheads in CephFS and by examining current workloads in HPC and
 Hadoop/Spark. The microbenchmarks show the performance of individual mechanisms
 while the macrobenchmarks model real-world use cases.
 

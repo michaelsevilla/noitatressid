@@ -574,19 +574,18 @@ This survey suggests that storage systems struggle:
 \begin{enumerate}
 
 \item \textbf{handling general-purpose workloads}. General-purpose file systems
-are hard to optimize so many users, including their applications ({\it i.e.}
-standalone programs, compilers, and runtimes) and behaviors ({\it i.e.} how
-users interact with file systems), resort to application-specific storage
-stacks.
+are hard to optimize so many application-level programs ({\it i.e.} standalone
+programs, compilers, and runtimes) and user behaviors ({\it i.e.} how users
+interact with file systems) need domain-specific storage stacks.
 
 \item \textbf{selecting optimizations}. Optimizations must work together
 because they are dependent on each other. For example, we have found that for
-some workloads the metadata protocols in CephFS are inefficient and have a bigger
-impact on performance and scalability than load balancing.  As a result,
-understanding these protocols improves load balancing and helps developers
-select metrics that systems should use to make migration decisions ({\it e.g.},
-which operations reflect the state of the system), what types of requests cause
-the most load, and how an overloaded system reacts ({\it e.g.}, increasing
+some workloads the metadata protocols in CephFS are inefficient and have a
+bigger impact on performance and scalability than load balancing.  As a result,
+understanding these protocols improves load balancing because developers can
+more effectively select metrics that systems should use to make migration
+decisions, such as what types of requests cause the most load and what
+resources get saturated when the system is overloaded ({\it e.g.}, increasing
 latencies, lower throughput, etc.).
 
 \item \textbf{guiding optimizations with policies}. Policies should be shaped

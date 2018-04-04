@@ -109,12 +109,12 @@ This last contribution is explored in Sections~\S\ref{sec:arch-specific}
 and~\S\ref{sec:dom-specific}, where we try a range of policies from different
 disciplines; but more importantly, in Section~\S\ref{sec:scope}, we conclude
 that the collection of policies we design for cache management in ParSplice are
-very similar to the policies used to load balance metadata in the Ceph file
-system (CephFS~\cite{weil:osdi2006-ceph}) suggesting that there is potential
-for automatically adapting and generating policies dynamically.  In this work
-we focus on a single node, so the ``where" policy is not used. When we move
-ParSplice to a distributed key-value store back-end, the ``where" policy will
-be used to determine which key-value pairs should be moved to which node.
+very similar to the policies used to load balance metadata in CephFS suggesting
+that there is potential for automatically adapting and generating policies
+dynamically.  In this work we focus on a single node, so the ``where" policy is
+not used. When we move ParSplice to a distributed key-value store back-end, the
+``where" policy will be used to determine which key-value pairs should be moved
+to which node.
 
 
 
