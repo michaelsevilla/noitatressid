@@ -4,107 +4,51 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 File system metadata management is difficult to scale. The attention that the
-topic has received, in both industry and academia, suggests that even decoupling
-metadata IO from data IO so that these services can scale independently is
-insufficient for today's workloads.  Cutting-edge techniques for scaling file
-system metadata access are implemented in `clean-slate' file systems built from
-the ground up, so users that want to leverage techniques from different file
-systems must provision separate storage clusters. Adding software layers to the
-compute stack in this way complicates system management because administrators
-must now (1) configure data migrations across file system boundaries and (2)
-compare file system metadata management techniques, which includes
-understanding implementations and benchmarking systems with the workload.
-Alternatively, developers can integrate multiple techniques into an existing
-file system and expose configuration parameters to let users select metadata
-management strategies. While this lets users compare techniques and minimizes
-data movement, it further increases the size of the stack because software
-layers are larger and their internals are more complex. This approach
-complicates system management because if techniques do not match the workload
-or a new technique becomes available, developers need to modify code, which
-takes time and jeopardizes the robustness of the file system. 
+topic has received, in both industry and academia, suggests that even
+decoupling metadata IO from data IO so that these services can scale
+independently~\cite{alam:pdsw2011-metadata-scaling, ghemawat:sosp2003-gfs,
+hildebrand:msst2005-pnfs, weil:osdi2006-ceph, welch:fast2008-panasas,
+xing:sc2009-skyfs} is insufficient for today's workloads. In the last 20 years,
+many cutting-edge techniques for scaling file system metadata access, mainly
+targeting POSIX IO's global and hierarchical semantics, have been proposed.
 
-% Problem: large systems are difficult to manage
-%Systems that process and store large amounts of data (petabytes and beyond)
-%are difficult to manage. 
+Unfortunately, techniques for scaling file system metadata access are
+implemented in `clean-slate' file systems built from the ground up, so users
+that want to leverage techniques from different file systems must provision
+separate storage clusters. Adding software layers to the compute stack in this
+way complicates system management because administrators must now (1) configure
+data migrations across file system boundaries and (2) compare file system
+metadata management techniques, which includes understanding implementations
+and benchmarking systems with the workload.  Alternatively, developers can
+integrate multiple techniques into an existing file system and expose
+configuration parameters to let users select metadata management strategies.
+While this lets users compare techniques and minimizes data movement, it
+further increases the size of the stack because software layers are larger and
+their internals are more complex.  This approach complicates system management
+because if techniques do not match the workload or a new technique becomes
+available, developers need to modify code, which takes time and jeopardizes the
+robustness of the file system.
 
-The layering problem is getting worse because of the trends of modern
-computing: data is too large, software is too complicated, hardware
-characteristics are changing too fast, and events are too frequent. The
-unmanageable nature of these hardware and software stacks is a result of
-abstracting away complexity using layers. Black box abstraction has been a boon
-to software because developers can focus on areas of their own expertise, but
-three trends have broken this programming model and proliferated unmanageable
-stacks:
-
-\begin{itemize}
-% Timeliness: layers on layers; {big stacks, overhead, proof}
-\item \textbf{More Data}: The overwhelming volume, velocity, and veracity of today's
-data shapes modern software. When data grows too large, we scale to larger
-systems, either by scaling out or scaling up. Focusing on the scale-out model
-has given birth to stacks, like Apache, that are used in industry,
-laboratories, and academia. But the size of these stacks leads to increased
-complexity, as code bases are larger and more
-layered~\cite{sevilla:eurosys17-malacology}.
-
-% Timeliness: extreme hetoregeneity {memory wall, more hardware, more runtimes}
-\item \textbf{Extreme Heterogeneity}: Increased heterogeneity in software and
-hardware requires large stacks just to manage resources.  Data centers are
-larger and have faster devices because device and network speeds are scaling
-much faster than DRAM speeds. The so-called memory
-wall~\cite{wulf:sigarch1995-memory-wall} pushes resource management into
-software runtimes, which must now manage large numbers of heterogeneous
-devices. The increasing momentum behind disaggregated
-storage~\cite{klimovic:asplos2017-reflex, klimovic:eurosys16-disagg}, a model
-that uses software as the control plane and reduces the CPU requirements of
-devices, is a result of prognoses that we are heading towards data centers that
-need to provision a CPU per storage device~\cite{samuels:oss16}. Regardless of
-where the future leads, the scale and complexity of software will continue to
-scale with the size of the architectures they manage.
-
-% Timeliness: oss faciliates transparency {vendor lock in, efficiency, collab}
-\item \textbf{Open-source Sofware}: Open-source software is gaining traction because
-it helps consumers avoid vendor lock in, it leads to more efficient
-implementations, and it encourages collaboration. All these advantages are
-rooted in transparency, as developers can work together to write code that
-manages the extreme heterogeneity mentioned above, but it also lets developers
-see the source code for the systems they use ``off-the-shelf". In short,
-open-source software leads to more software because code can come from
-different domains, organizations, and communities, and it is easier to write
-optimizations for layers that are are fully exposed.
-
-\end{itemize}
-
-The stacks produced by these trends have longer code paths, duplicated
-functionality, and lower performance.  The overhead of these stacks are so
-high that many workloads can be outperformed by a single, scale-up node with
-less resources~\cite{sevilla:discs2013-framework,
-rowstron:hotcdp2012-hadoop-vs-single-node, schwarzkopf:hotcloud2012-7-sins,
-gigaspaces:whitepaper2011-su-vs-so, michael:2007pdps-scale-up-x-scale-out}.  In
-light of these trends, our solution is a concept called ``programmable
-storage"~\cite{sevilla:eurosys17-malacology, watkins:hot17-declstor}.
-Programmable storage facilitates the re-use and extension of existing storage
-abstractions provided by the underlying software stack, to enable the creation
-of new services via composition. This development process is faster than
-reducing layers manually for new architectures with less
-layers~\cite{bent:login16-hpc-trends} that may break backwards compatibility.
-We add interfaces {\it into} a storage system's internal functionality to
-facilitate application co-design, leading to more efficient implementations
-that inherit the robustness of the underlying system with less code
-duplication. This thesis uses the programmable storage approach to embed policy
-engines into file system metadata substrates to control the behavior,
-performance, and transparency of the entire software stack.
+As a result of this complexity and perceived scalability limitation,
+communities are abandoning global namespaces.  Our fundamental insight is that
+many file systems have similar internals and that the policies from
+cutting-edge techniques for file system metadata access can be expressed in a
+system-agnostic way. So application developers can design policies based on
+their knowledge of the application, without having to understand storage system
+internals.  While separating policy from mechanism is not a new
+idea~\cite{mckusick:fast2015-FFS}, we show that given the right interfaces,
+application developers can guide file system metadata management techniques
+using domain-specific knowledge.  To that end, we use the programmable storage
+approach~\cite{sevilla:eurosys17-malacology} to embed policy engines into file
+system metadata substrates to control the behavior, performance, and
+transparency of the entire software stack.
 
 \section{Contributions}
 
-This thesis argues that the programmable storage approach is the correct model
-for scaling global namespaces and designing effective file system metadata
-management policies. We design policies for three metadata management
-techniques: subtree load balancing, subtree semantics, and subtree schemas.
-The first two expand on a strong foundation of related work while the third is
-a novel idea. Because we use the programmable storage approach, each system (1)
-is built by composing internal abstractions, (2) uses and re-uses existing
-functionality in the underlying file system, and (3) ends up with less layers
-than `clean-slate' approaches.
+Using the programmable storage approach, we design policies for three metadata
+management techniques: subtree load balancing, subtree semantics, and subtree
+schemas.  The first two expand on a strong foundation of related work while the
+third is a novel idea. 
 
 First, we present a methodology for programmable load balancing policies for
 file system metadata.  To help decouple policy from mechanism, we introduce a

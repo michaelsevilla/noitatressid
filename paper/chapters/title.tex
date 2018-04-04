@@ -27,14 +27,14 @@ is not future-proof as code needs to be changed, which jeopardizes the
 system's robustness. `Clean-slate' file systems and the rapid integration of
 new features adds large software layers to the stack, which degrades
 performance, reduces efficiency, and increases complexity. The time is ripe for
-a new solution that avoids layering, especially in light of growing data set
-sizes, increasing hardware/software heterogeneity, and the rise of open-source
-software.
+a new solution that avoids layering.
 
 This thesis shows how to make global namespaces scalable using a `programmable
 storage' approach. We add interfaces to the storage system so administrators
-can compose functionality together to build higher-level services and
-applications. The dissertation discusses the design, implementation, and
+can design file system metadata management policies without needing to
+understand storage system internals. Based on these policies, the file system
+can re-arrange its internal mechanisms to facilitate scalable, global
+namespaces.  The dissertation discusses the design, implementation, and
 evaluation of three programmable file system metadata management systems:
 Mantle, a programmable file system metadata load balancer, Cudele, an API and
 framework for programmable consistency and durability in a global namespace,

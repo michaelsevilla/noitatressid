@@ -130,12 +130,11 @@ Scalable file system metadata techniques exist but they are implemented as
 techniques into their file system as they become available, but changing code
 is not trivial and jeopardizes the robustness of the system. Both techniques
 create large software stacks, which reduces performance, degrades efficiency,
-and increases complexity. The time is ripe, especially with the advent of
-workloads with big data, extremely heterogeneous computing environments, and
-open-source software, for a programmable storage system approach. We present
-programmable file system interfaces implemented on CephFS, that facilitate
-application-specific knowledge by allowing administrators to compose building
-blocks.
+and increases complexity. We present programmable file system interfaces,
+implemented on CephFS, that let application developers specify policies that
+guide file system metadata management techniques Without needing to understand
+file system internals, application developers can provide domain-specific
+knowledge to the storage system, which facilitates scalable, global namespaces.
 
 Mantle is a programmable metadata load balancer for CephFS
 (Chapter~\ref{chp:mantle}) but has been shown to be effective for other domains
