@@ -1,7 +1,7 @@
 \chapter{Conclusion}
 \label{chp:conclusion}
 
-We conclude this thesis with related work and a summary of our findings.
+We conclude this thesis with future work and a summary of our findings.
 
 \section{Future Work}
 
@@ -11,8 +11,8 @@ would like to try.
 
 \subsection{Load Balancing with Mantle}
 
-In the Mantle chapter we only show how certain policies can improve or degrade
-performance and instead focus on how the API is flexible enough to express many
+In the Mantle chapter we only showed how certain policies can improve or degrade
+performance and instead focused on how the API is flexible enough to express many
 strategies.  While we do not come up with a solution that is better than
 state-of-the-art systems optimized for file creates ({\it e.g.}, GIGA+), we do
 present a framework that allows users to study the emergent behavior of
@@ -21,9 +21,9 @@ future, we hope to quantify the effect that policies have on performance by
 running a suite of workloads over different balancers. Other future endeavors
 will focus on:
 
-\textbf{Analyzing Scalability}: our MDS cluster is small, but today's
+\textbf{Analyzing Scalability}: our MDS cluster was small, but today's
 production systems use metadata services with a small number of nodes (often
-less than 5). Our balancers are robust until 20 nodes, at which point there is
+less than 5). Our balancers are robust until 20 nodes, at which point there was
 increased variability in client performance for reasons that we are still
 investigating. We expect to encounter problems with CephFS's architecture ({\it
 e.g.}, n-way communication and memory pressure with many files), but we are
@@ -49,7 +49,7 @@ still needs to be integrated into the prototype.
 %deep dive on CephFS metadata protocols
 %run policies on other components/systems
 
-The ZLog sequencer balancing and ParSplice cache management work lays the
+The ZLog sequencer balancing and ParSplice cache management case studies lay the
 foundation for future work, where we will focus on formalizing a collection of
 general data management policies that can be used across applications and
 storage systems.  The value of such a collection eases the burden of policy
@@ -117,10 +117,10 @@ most insights. Bolder avenues of future work include generating mappings of
 names to data. For example, instead of generating file system namespaces, we
 could use the same concept to change striping strategies for individual files,
 altering things such as object size, location, or naming convention. Such an
-implementation would help users move data amongst storage systems so they
+implementation would help users move data amongst storage systems so users
 could, for example, move data from CephFS to Lustre. Finally, we want to use
 the namespace schema framework to generate application-specific metadata to
-encompass domains that need metadata tagging, like for simulations that Empress
+encompass domains that need metadata tagging, like for simulations that EMPRESS
 targets.
 
 \section{Summary}
@@ -129,39 +129,40 @@ Scalable file system metadata techniques exist but they are implemented as
 `clean-slate' file systems built from the ground up. Developers can integrate
 techniques into their file system as they become available, but changing code
 is not trivial and jeopardizes the robustness of the system. Both techniques
-create large software stacks, which reduces performance, degrades efficiency,
-and increases complexity. We present programmable file system interfaces,
-implemented on CephFS, that let application developers specify policies that
-guide file system metadata management techniques Without needing to understand
-file system internals, application developers can provide domain-specific
-knowledge to the storage system, which facilitates scalable, global namespaces.
+create large software stacks, which reduces performance, degrades code path
+efficiency, and increases complexity. We present programmable file system
+interfaces, implemented on CephFS, that let application developers specify
+policies that guide file system metadata management techniques. Without needing
+to understand file system internals, application developers can provide
+domain-specific knowledge to the file system. With this information, the file
+system can provide a scalable, global namespaces.
 
 Mantle is a programmable metadata load balancer for CephFS
-(Chapter~\ref{chp:mantle}) but has been shown to be effective for other domains
-and workloads (Chapter~\ref{chp:mantle-beyond}). For file systems we test three
-policies from related work and show how the framework and specification is
+(Chapter~\ref{chp:mantle}) but was shown to be effective for other domains and
+workloads (Chapter~\ref{chp:mantle-beyond}). For file systems we tested three
+policies from related work and showed how the framework and specification is
 effective for succinctly expressing load balancing policies over the same
-storage system. For other domains, we show how the Mantle API and framework can
-be used to migrate ZLog sequencers and manage ParSplice caches. The goal is to
-build a general load balancing library that can be used across domains and
-workloads.
+storage system. For other domains, we showed how the Mantle API and framework
+can be used to migrate ZLog sequencers and manage ParSplice caches. The current
+goal is to build a general load balancing library that can be used across
+domains and workloads.
 
 Cudele is an API and framework for programmable consistency and durability
-(Chatper~\ref{chp:cudele}). We show how different file system semantics,
+(Chatper~\ref{chp:cudele}). We showed how different file system semantics,
 ranging from POSIX IO to decoupled namespaces, can co-exist in the same global
-namespace. We show how our prototype can realize strong/weak/invisible
+namespace. We also showed how our prototype can implement strong/weak/invisible
 consistency and global/local/no durability.
 
-Finally, Tintenfisch shows how namespace schemas and generators can make global
+Finally, Tintenfisch showed how namespace schemas and generators can make global
 namespaces even more scalable (Chapter~\ref{chp:tintenfisch}). The read
 problem, namely the management, transfer, and materialization of file system
 metadata, can be addressed by categorizing and generating namespaces. We
-examine three different domains (high performance computing, high energy
-physics, and large scale simulations) and show how the namespaces have
+examined three different domains (high performance computing, high energy
+physics, and large scale simulations) and showed how the namespaces have
 structure. We also propose 3 example namespace generators (formula, code, and
 pointer) that fit the applications in these domains.
 
-This thesis shows that global namespaces can be scalable if designed correctly,
-using the programmable storage approach. Our evaluations range from
-microbenchmarks to real-world use cases and demonstrate a future-proof
+This thesis showed that global namespaces can be scalable if designed correctly,
+using the programmable storage approach. Our evaluations ranged from
+microbenchmarks to real-world use cases and demonstrated a future-proof
 approach.
