@@ -20,7 +20,7 @@ way complicates system management because administrators must now (1) configure
 data migrations across file system boundaries and (2) compare file system
 metadata management techniques, which includes understanding implementations
 and benchmarking systems with the workload.  Alternatively, developers that
-want the convenience of a single global namespaces can integrate multiple
+want the convenience of a single global namespace can integrate multiple
 techniques into an existing file system and expose configuration parameters to
 let users select metadata management strategies.  While this lets users compare
 techniques and minimizes data movement, it further increases the size of the
@@ -34,10 +34,11 @@ communities are abandoning global namespaces.  Our fundamental insight is that
 many file systems have similar internals and that the policies from
 cutting-edge techniques for file system metadata access can be expressed in a
 system-agnostic way.  Given the right interfaces, application developers can
-guide file system metadata management techniques by composing existing storage
-system abstractions.  To that end, we use the programmable storage
-approach~\cite{sevilla:eurosys17-malacology} to embed policy engines into file
-system metadata substrates to control the behavior, performance, and
+design policies that guide file system metadata management techniques by
+composing existing file system abstractions without having intimate
+knowledge of file system internals.  To that end, we use the programmable
+storage approach~\cite{sevilla:eurosys17-malacology} to embed policy engines
+into file system metadata substrates to control the behavior, performance, and
 transparency of the entire software stack.
 
 \section{Contributions}

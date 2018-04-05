@@ -138,23 +138,25 @@ needing to understand file system internals, application developers can provide
 domain-specific knowledge to the file system. With this information, the file
 system can provide a scalable, global namespaces.
 
-Mantle is a programmable metadata load balancer for CephFS
-(Chapter~\ref{chp:mantle}) but was shown to be effective for other domains and
-workloads (Chapter~\ref{chp:mantle-beyond}). For file systems we tested three
-policies from related work and showed how the framework and specification is
-effective for succinctly expressing load balancing policies over the same
+First, we presented and API and framework for a programmable metadata load
+balancer for file systems (Chapter~\ref{chp:mantle}) that was also shown to be
+effective for other domains and workloads (Chapter~\ref{chp:mantle-beyond}).
+Using our prototpye, Mantle, we tested three file system metadata load
+balancing policies from related work and showed how the framework and
+specification is effective for succinctly expressing policies over the same
 storage system. For other domains, we showed how the Mantle API and framework
 can be used to migrate ZLog sequencers and manage ParSplice caches. The current
 goal is to build a general load balancing library that can be used across
 domains and workloads.
 
-Cudele is an API and framework for programmable consistency and durability
-(Chatper~\ref{chp:cudele}). We showed how different file system semantics,
-ranging from POSIX IO to decoupled namespaces, can co-exist in the same global
-namespace. We also showed how our prototype can implement strong/weak/invisible
+Second, we presented an an API and framework for programmable consistency and
+durability in a global namespace (Chatper~\ref{chp:cudele}). Using our
+prototype, Cudele, we showed how different file system semantics, ranging from
+POSIX IO-compliant to decoupled namespaces, can co-exist in the same global
+namespace. We also showed how Cudele can implement strong/weak/invisible
 consistency and global/local/no durability.
 
-Finally, Tintenfisch showed how namespace schemas and generators can make global
+Finally, we showed how namespace schemas and generators can make global
 namespaces even more scalable (Chapter~\ref{chp:tintenfisch}). The read
 problem, namely the management, transfer, and materialization of file system
 metadata, can be addressed by categorizing and generating namespaces. We
