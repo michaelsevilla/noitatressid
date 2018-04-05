@@ -29,11 +29,12 @@ shown that separating metadata and data traffic is insufficient for scaling to
 large systems and identify the metadata service as the performance critical
 component.
 
-First, we discuss general file system use cases and characterize the resultant
-metadata workloads. Next, we describe three semantics that users expect from
-file systems: strong consistency, durability, and a hierarchical organization.
-For each semantic, we explain why it is problematic for today's metadata
-workloads and survey optimizations in related work.
+First, we scope the discussion, describe general file system use cases, and
+characterize the resultant metadata workloads. Next, we describe three
+semantics that users expect from file systems: strong consistency, durability,
+and a hierarchical organization.  For each semantic, we explain why it is
+problematic for today's metadata workloads and survey optimizations in related
+work.
 
 %% general optimization An accepted optimization for distributed file systems
 %is to maintain system-specific information about accessing files.  Per-client
@@ -52,6 +53,49 @@ workloads and survey optimizations in related work.
 %of data locations.  Other systems have similar capabilities but are not
 %enumerated here because these optimizations are for data IO.  Instead we focus
 %on similar optimizations for serving the metadata itself.
+
+\section{Scope}
+
+% What is an object store
+This thesis addresses file system metadata in a POSIX IO namespace; metadata
+management in object stores is an orthogonal issue.  Object stores have been
+successfully used for many use cases, such as computation
+heavy~\cite{nightingale:osdi2012-fds} and
+photo-based~\cite{beaver:osdi2010-haystack} workloads.  They have excellent
+flexibility and scalability because (1) they expose a flat namespace and (2)
+the metadata specification is less restrictive. For (1), the flat namespace
+means that data is not related so it can be distributed evenly with a hash.
+Metadata can be stored either with the data as extended attributes ({\it e.g.},
+Swift~\cite{toor:nas2012-swift}) or at some pre-defined offset of the data
+({\it e.g.}, FDS~\cite{nightingale:osdi2012-fds}). For (2), a less restrictive
+metadata scheme removes extraneous operations and fields for each object. For
+example, photo-based storage has no need for the traditional POSIX IO
+permission fields~\cite{beaver:osdi2010-haystack}. Because of this generality,
+object stores are usually used as the data lake for file systems, distributed
+block devices, and large object blobs ({\it e.g.}, S3/Swift objects).
+
+% Relation to file systems
+Despite the scalability benefits of object stores, POSIX IO-compliant file
+systems are not going away. File systems are important for legacy software,
+which expect file system semantics such as strong consistency, durability, and
+hierarchical ownership.  File systems also accommodate users accustomed to
+POSIX IO namespaces. For example, many users have ecosystems that leverage file
+sharing services, such as creating/deleting shares, permissions ({\it e.g.},
+listing, showing, providing/denying access to shares), snapshotting or
+cloning, and coordinating file system mounts/unmounts.  Although an object
+store can provide data storage for file systems, it is a poor solution for
+managing hierarchical metadata because of metadata workload characteristics
+({\it i.e.} small/frequent requests with spatial/temporal locality).
+
+% Other storage
+Metadata management in other systems is beyond the scope of this work. We are
+not targeting a myriad of topics, including: data placement and arrangement,
+since this is handled by CRUSH~\cite{weil:osdi2006-ceph}, metadata
+extensibility and index format ({\it e.g.}, SpyGlass\cite{leung:fast2009-spyglass} and
+SmartStore~\cite{hua:sc2009-smartstore}), and transformations on metadata with
+a DBMS ({\it e.g.}, LazyBase~\cite{cipar:eurosys2012-lazybase}). 
+
+
 
 \section{Metadata Workloads}
 
