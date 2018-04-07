@@ -5,23 +5,23 @@
 \includegraphics[width=0.7\textwidth]{./chapters/background/figures/overview.png}
 \caption{Scalable storage systems have storage daemons which store data,
 monitor daemons (M) that maintain cluster state, and service-specific daemons
-(e.g., file system metadata servers). Malacology enables the programmability of
+({e.g.}, MDSs). Malacology enables the programmability of
 internal abstractions (bold arrows) to re-use and compose existing subsystems.
 With Malacology, we built new higher-level services, ZLog and Mantle, that sit
 alongside traditional user-facing APIs (file, block,
 object).}\label{fig:overview}
 \end{figure}
 
-Malacology~\cite{sevilla:eurosys17-malacology} is a programmable storage system
-built on Ceph. A programmable storage system facilitates the re-use and
-extension of existing storage abstractions provided by the underlying software
-stack, to enable the creation of new services via composition.  Programmable
-storage differs from \emph{active storage}~\cite{riedel:vldb98}---the injection
-and execution of code within a storage system or storage device---in that the
-former is applicable to any component of the storage system, while the latter
-focuses at the data access level. Given this contrast, we can say that active
-storage is an example of how one internal component (the storage layer) is
-exposed in a programmable storage system.
+Malacology is a programmable storage system built on Ceph. A programmable
+storage system facilitates the re-use and extension of existing storage
+abstractions provided by the underlying software stack, to enable the creation
+of new services via composition.  Programmable storage differs from
+\emph{active storage}~\cite{riedel:vldb98}---the injection and execution of
+code within a storage system or storage device---in that the former is
+applicable to any component of the storage system, while the latter focuses on
+the data access level. Given this contrast, we can say that active storage is
+an example of how one internal component (the storage layer) is exposed in a
+programmable storage system.
 
 Malacology was built on Ceph because Ceph offers a broad spectrum of existing
 services, including distributed locking and caching services provided by file

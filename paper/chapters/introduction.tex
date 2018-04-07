@@ -80,12 +80,13 @@ namespace. The result is less network traffic, storage footprints, and overall
 metadata operations.  Our prototype, Tintenfisch, is a programmable file system
 that enables namespace generators.
 
-These contributions and their corresponding prototypes have received
-considerable attention in the community. Mantle was merged into Ceph and funded
-by the Center for Research in Open Source Software and Los Alamos National
-Laboratory; Malacology and Mantle were featured in the Next Platform magazine
-and the 2017 Lua Workshop; and Malacology, Cudele, and Tintenfisch are some of
-the first Popper-compliant~\cite{jimenez:ipdpsw17-popper} conference papers.
+In addition to academic publications, these contributions and their
+corresponding prototypes have received considerable attention in the community.
+Mantle was merged into Ceph and funded by the Center for Research in Open
+Source Software and Los Alamos National Laboratory; Malacology and Mantle were
+featured in the Next Platform magazine and the 2017 Lua Workshop; and
+Malacology, Cudele, and Tintenfisch are some of the first
+Popper-compliant~\cite{jimenez:ipdpsw17-popper} conference papers.
 
 \section{Outline}
 
@@ -120,10 +121,10 @@ developed at Los Alamos National Laboratory.
 Chapter~\ref{chp:cudele} describes the Cudele API and framework for relaxing
 consistency and durability semantics in a global file system namespace. We
 focus on building blocks called mechanisms and show how administrators can
-build application-specific subtrees.  We motivate Cudele by measuring the POSIX
-IO overheads in CephFS and by examining current workloads in HPC and
-Hadoop/Spark. The microbenchmarks show the performance of individual mechanisms
-while the macrobenchmarks model real-world use cases.
+build application-specific semantics for subtrees.  We motivate Cudele by
+measuring the POSIX IO overheads in CephFS and by examining current workloads
+in HPC and Hadoop/Spark. The microbenchmarks show the performance of individual
+mechanisms while the macrobenchmarks model real-world use cases.
 
 Chapter~\ref{chp:tintenfisch} describes Tintenfisch, which lets clients and
 servers generate subtrees to reduce network traffic, storage footprints, and

@@ -1,7 +1,7 @@
 \section{Implementation}
 \label{sec:implementation}
 
-We use a programmable storage approach~\cite{sevilla:eurosys17} to design
+We use a programmable storage approach~\cite{sevilla:eurosys17-malacology} to design
 Cudele; namely, we try to leverage components inside CephFS to inherit the
 robustness and correctness of the internal subsystems. Using this ``dirty-slate"
 approach, we only had to implement 4 of the 6 mechanisms from
@@ -150,7 +150,7 @@ the ability to recursively apply policies to subtrees and to isolate subtrees
 from each other. \textbf{In Cudele,} the large inodes also store consistency and
 durability policies. This approach uses the File Type
 interface from the Malacology programmable storage
-system~\cite{sevilla:eurosys17} and it tells clients how to access the
+system~\cite{sevilla:eurosys17-malacology} and it tells clients how to access the
 underlying metadata. The underlying implementation stores executable code in
 the inode that calls the different Cudele mechanisms. Of course, there are many
 security and access control aspects of this approach but that is beyond the
