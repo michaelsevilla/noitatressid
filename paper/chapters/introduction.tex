@@ -43,7 +43,7 @@ transparency of the entire software stack.
 
 \section{Contributions}
 
-Using the programmable storage approach, we design policies for three metadata
+Using the programmable storage approach, we design policy engines for three metadata
 management techniques: subtree load balancing, subtree semantics, and subtree
 schemas.  The first two expand on a strong foundation of related work while the
 third is a novel idea. 
@@ -55,7 +55,7 @@ balancing logic. We show the flexibility and transparency of this approach by
 replicating the strategy of a state-of-the-art metadata balancer and conclude
 by comparing this strategy to other custom balancers on the same system. We
 also show how the data management language and policy engine from Mantle turns
-out to be an effective control plane for load balancing general and cache
+out to be an effective control plane for general load balancing and cache
 management.
 
 Second, we present a methodology for programmable consistency and durability in
@@ -64,11 +64,11 @@ consistency/durability requirements and dynamically assign them to subtrees in
 the same namespace, allowing users to optimize subtrees over time and space for
 different workloads. We confirm the performance benefits of techniques
 presented in related work but also explore new consistency/durability metadata
-designs, all integrated over the same storage system. By custom fitting a
-subtree to a create-heavy application, we show performance improvements when
-we custom fit subtree semantics to applications such as checkpoint-restart
-(91.7\(\times\) speedup), user home directories (0.03 standard deviation from
-optimal), and users checking for partial results (2\% overhead).
+designs, all integrated over the same storage system.  We show performance
+improvements when we custom fit subtree semantics to applications such as
+checkpoint-restart (91.7\(\times\) speedup), user home directories (0.03
+standard deviation from optimal), and users checking for partial results (2\%
+overhead).
 
 Third, we present a methodology for generating namespaces automatically and
 lazily, without incurring the costs of traditional metadata management,
