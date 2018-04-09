@@ -12,7 +12,7 @@ xing:sc2009-skyfs} is insufficient for today's workloads. In the last 20 years,
 many cutting-edge techniques for scaling file system metadata access, mainly
 targeting POSIX IO's global and hierarchical semantics, have been proposed.
 
-Unfortunately, techniques for scaling file system metadata access are
+Unfortunately, techniques for scaling file system metadata access in a global namespace are
 implemented in `clean-slate' file systems built from the ground up, so users
 that want to leverage techniques from different file systems must provision
 separate storage clusters. Adding software layers to the compute stack in this
@@ -30,7 +30,10 @@ the workload or a new technique becomes available, developers need to modify
 code, which takes time and jeopardizes the robustness of the file system.
 
 As a result of this complexity and perceived scalability limitation,
-communities are abandoning global namespaces.  Our fundamental insight is that
+communities are abandoning global namespaces. But using different storage
+architectures, like object stores, means that legacy applications must be re-written
+and users must be re-trained to use new APIs and services. We make global
+namespaces scalable with the fundamental insight that
 many file systems have similar internals and that the policies from
 cutting-edge techniques for file system metadata access can be expressed in a
 system-agnostic way.  Given the right interfaces, application developers can
