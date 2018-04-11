@@ -4,7 +4,7 @@
 \begin{figure}[tb]
   \centering
   \ssp
-  \begin{minted}[xleftmargin=3em,linenos]{lua}
+  \begin{minted}[xleftmargin=3em,linenos,frame=lines]{lua}
 function when()
   if server[whoami]['cachesize'] > n then
     if server[whoami]['cachesize'] > 100K then
@@ -26,7 +26,7 @@ end
 \begin{figure}
   \centering
   \ssp
-  \begin{minted}[xleftmargin=3em,linenos]{lua}
+  \begin{minted}[xleftmargin=3em,linenos,frame=lines]{lua}
 local function when()
   if servers[whoami]["load"] > target then
     overloaded = RDstate() + 1

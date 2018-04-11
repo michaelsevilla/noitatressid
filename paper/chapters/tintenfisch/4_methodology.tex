@@ -14,8 +14,8 @@
 \end{figure}
 
 \begin{figure}
-  \footnotesize
-  \begin{minted}[xleftmargin=1em]{lua}
+  \ssp
+  \begin{minted}[xleftmargin=1em,frame=lines]{lua}
 local box require 'box2d'
 for i=_x,_x+x do for j=_y,_y+y do
   if t>30 then 
@@ -26,12 +26,13 @@ for i=_x,_x+x do for j=_y,_y+y do
 end end end 
 return obj_list
   \end{minted}
+  \dsp
   \caption{Code generator for SIRIUS} \label{fig:sirius}
 \end{figure}
 \begin{figure}
+  \ssp
   \centering
-  \footnotesize
-  \begin{minted}[xleftmargin=1em]{c++}
+  \begin{minted}[xleftmargin=1em,frame=lines]{c++}
 void recurseBranch(TObjArray *o){
   TIter i(o); 
   for(TBranch *b=i.Next();
@@ -42,6 +43,7 @@ void recurseBranch(TObjArray *o){
   }
 }
   \end{minted}
+  \dsp
   \caption{Code generator for HEP} \label{fig:hep}
 \end{figure}
 

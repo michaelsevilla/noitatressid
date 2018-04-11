@@ -73,7 +73,6 @@ an MPI-based storage system can access the CPU utilization of the first rank in 
 communication group using:\\
 
 \begin{figure}[h]
-\footnotesize
 \begin{minted}{lua}
 load = servers[0]['cpu']
 \end{minted}
@@ -89,8 +88,8 @@ example, a policy that uses accesses to a directory in a file system as a
 metric for load collects that information using:\\
 
 \begin{figure}[h]
-\footnotesize
-\begin{minted}{lua}
+\ssp
+\begin{minted}[frame=lines]{lua}
 d = timeseries()       -- d(ata) from storage system
 for i=1,d:size() do    -- iterate over timeseries
   ts, value = d:get(i) -- index into timeseries 
@@ -99,6 +98,7 @@ for i=1,d:size() do    -- iterate over timeseries
   end
 end
 \end{minted}
+\dsp
 \end{figure}
 
 

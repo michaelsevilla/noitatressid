@@ -41,13 +41,16 @@ This balancer, shown in Listing~\ref{listing:greedy-spill}, aggressively sheds l
 	\begin{minted}[frame=lines]{lua}
 -- Metadata load
 metaload = IWR
+
 -- Metadata server load
 mdsload = MDSs[i]["all"]
+
 -- When policy
-if MDSs[whoami]["load"]>.01 and 
-   MDSs[whoami+1]["load"]<.01 then
+if MDSs[whoami]["load"]>.01 and MDSs[whoami+1]["load"]<.01 then
+
 -- Where policy
 targets[whoami+1]=allmetaload/2
+
 -- Howmuch policy
 {"half"}
 	\end{minted}
@@ -65,10 +68,14 @@ The first graph in Figure~\ref{figure:eval_spill-evenly} shows the instantaneous
 	\begin{minted}[frame=lines]{lua}
 -- When policy
 t=((#MDSs-whoami+1)/2)+whoami
-if t>#MDSs then t=whoami end
-while t~=whoami and MDSs[t]<.01 do t=t-1 end
-if MDSs[whoami]["load"]>.01 and        
-   MDSs[t]["load"]<.01 then
+if t>#MDSs then 
+  t=whoami
+end
+while t~=whoami and MDSs[t]<.01 do
+  t=t-1
+end
+if MDSs[whoami]["load"]>.01 and MDSs[t]["load"]<.01 then
+
 -- Where policy
 targets[t]=MDSs[whoami]["load"]/2
 	\end{minted}
@@ -105,6 +112,7 @@ if MDSs[whoami]["cpu"]>48 then
   else WRState(2); go=1; end
 else WRState(2) end
 if go==1 then
+
 -- Where policy
 targets[whoami+1] = MDSs[whoami]["load"]/4
 	\end{minted}
@@ -140,6 +148,7 @@ This balancer, shown in Listing~\ref{listing:adaptable}, migrates load frequentl
 	\begin{minted}[frame=lines]{lua}
 -- Metadata load
 metaload = IWR + IRD
+
 -- When policy
 max=0
 for i=1,#MDSs do
@@ -147,6 +156,7 @@ for i=1,#MDSs do
 end
 myLoad = MDSs[whoami]["load"]
 if myLoad>total/2 and myLoad>=max then
+
 -- Balancer where policy
 targetLoad=total/#MDSs
 for i=1,#MDSs do
@@ -154,6 +164,7 @@ for i=1,#MDSs do
     targets[i]=targetLoad-MDSs[i]["load"]
   end
 end
+
 -- Howmuch policy
 {"half","small","big","big_small"}
 	\end{minted}
