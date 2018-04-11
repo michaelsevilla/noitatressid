@@ -19,27 +19,29 @@
 	\maketitle\copyrightpage\tableofcontents\listoffigures\listoftables
 	\begin{abstract}
 
-Global namespaces are difficult to scale. State-of-the-art file system metadata
-management techniques are often implemented in `clean-slate' file systems
-built from the ground up. Developers can integrate new techniques into an
-existing file system (as they become available) but this approach exposes
-confusing configurations to the user and is not future-proof as code needs to
-be changed, which jeopardizes the system's robustness. Furthermore, both
-approaches add large software layers to the stack, which degrades performance,
-reduces code path efficiency, and increases complexity. The time is ripe for a
-new solution that avoids layering.
+File system system metadata management is difficult to scale. State-of-the-art
+file system metadata management techniques for global namespaces are often
+implemented in `clean-slate' file systems built from the ground up.
+Unfortunately, developers that want to leverage these techniques must deploy
+separate storage clusters, which incurs data movement and makes it difficult to
+compare metadata management techniques. Developers can integrate new techniques
+into an existing file system (as they become available) but this approach
+exposes confusing configurations to the user and is not future-proof because
+code needs to be continually changed. As a result of these complexities and
+perceived scalability limitations, communities are abandoning global
+namespaces.
 
 This thesis shows how to make global namespaces scalable using a `programmable
 storage' approach. We add interfaces to the storage system so administrators
-can design file system metadata management policies without needing to
-understand storage system internals. Based on these policies, the file system
-can re-arrange its internal mechanisms to facilitate scalable, global
-namespaces.  The dissertation discusses the design, implementation, and
-evaluation of three programmable file system metadata management systems:
-Mantle, a programmable file system metadata load balancer, Cudele, an API and
-framework for programmable consistency and durability in a global namespace,
-and Tintenfisch, a system that facilitates namespace schemas and namespace
-generators for structured metadata.
+can write policies that guide metadata management techniques without needing to
+understand intimate file system details. By providing the right interface,
+application developers can can compose high-level file system abstractions to
+build application-specific storage stacks. Using this approach, we design
+policy engines and APIs for (1) subtree load balancing, (2) relaxing subtree
+consistency and durability semantics, and (3) subtree schemas and generators.
+For each section, we also detail the design, implementation, and evaluation of
+our prototype programmable file system metadata management systems: Mantle,
+Cudele, and Tintenfisch.
 
 Each system is implemented on CephFS, providing state-of-the-art file system
 metadata management techniques to a leading open-source project. We have had

@@ -9,8 +9,9 @@ decoupling metadata IO from data IO so that these services can scale
 independently~\cite{alam:pdsw2011-metadata-scaling, ghemawat:sosp2003-gfs,
 hildebrand:msst2005-pnfs, weil:osdi2006-ceph, welch:fast2008-panasas,
 xing:sc2009-skyfs} is insufficient for today's workloads. In the last 20 years,
-many cutting-edge techniques for scaling file system metadata access, mainly
-targeting POSIX IO's global and hierarchical semantics, have been proposed.
+many cutting-edge techniques for scaling file system metadata access in a
+single namespace have been proposed; most techniques target POSIX IO's global
+and hierarchical semantics.
 
 Unfortunately, techniques for scaling file system metadata access in a global namespace are
 implemented in `clean-slate' file systems built from the ground up, so users
@@ -53,7 +54,7 @@ third is a novel idea.
 
 First, we present a methodology for programmable load balancing policies for
 file system metadata.  To help decouple policy from mechanism, we introduce a
-programmable storage system, Mantle, that lets the designer inject custom
+programmable file system, Mantle, that lets the designer inject custom
 balancing logic. We show the flexibility and transparency of this approach by
 replicating the strategy of a state-of-the-art metadata balancer and conclude
 by comparing this strategy to other custom balancers on the same system. We
