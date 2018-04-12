@@ -129,16 +129,15 @@ Communities are abandoning file systems because global namespaces are not seen
 as scalable.  Scalable file system metadata techniques exist but they are
 implemented as `clean-slate' file systems built from the ground up. Developers
 can integrate techniques into their file system as they become available, but
-changing code is not trivial and jeopardizes the robustness of the system. Both
-techniques create large software stacks, which reduces performance, degrades
-code path efficiency, and increases complexity. We present programmable file
-system interfaces, implemented on CephFS, that let application developers
-specify policies that guide file system metadata management techniques. Without
-needing to understand file system internals, application developers can provide
-domain-specific knowledge to the file system. With this information, the file
-system can provide a scalable, global namespace.
+changing code is not trivial and jeopardizes the robustness of the system.  We
+present file system metadata management APIs and policy engines, implemented on
+CephFS, that let higher-level software developers specify policies that guide
+file system metadata management techniques. Without needing to understand file
+system internals, these developers can provide domain-specific knowledge to the
+file system, that the file system can then use to provide a scalable, global
+namespace.
 
-First, we presented an API and framework for a programmable metadata load
+First, we presented an API and policy engine for a programmable metadata load
 balancer for file systems (Chapter~\ref{chp:mantle}) that was also shown to be
 effective for other domains and workloads (Chapter~\ref{chp:mantle-beyond}).
 Using our prototype, Mantle, we tested three file system metadata load
@@ -149,7 +148,7 @@ can be used to migrate ZLog sequencers and manage ParSplice caches. The current
 goal is to build a general load balancing library that can be used across
 domains and workloads.
 
-Second, we presented an API and framework for programmable consistency and
+Second, we presented an API and policy engine for programmable consistency and
 durability in a global namespace (Chapter~\ref{chp:cudele}). Using our
 prototype, Cudele, we showed how different file system semantics, ranging from
 POSIX IO-compliant to decoupled namespaces, can co-exist in the same global
@@ -165,7 +164,7 @@ physics, and large scale simulations) and showed how the namespaces have
 structure. We also propose 3 example namespace generators (formula, code, and
 pointer) that fit the applications in these domains.
 
-This thesis showed that global namespaces can be scalable if designed correctly,
-using the programmable storage approach. Our evaluations ranged from
+This thesis showed that global namespaces can be scalable if designed
+correctly, using the programmable storage approach. Our evaluations ranged from
 microbenchmarks to real-world use cases and demonstrated a future-proof
 approach.

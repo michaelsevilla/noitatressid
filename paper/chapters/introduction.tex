@@ -3,86 +3,86 @@
 \chapter{Introduction}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-File system metadata management is difficult to scale. The attention that the
-topic has received, in both industry and academia, suggests that even
-decoupling metadata IO from data IO so that these services can scale
-independently~\cite{alam:pdsw2011-metadata-scaling, ghemawat:sosp2003-gfs,
-hildebrand:msst2005-pnfs, weil:osdi2006-ceph, welch:fast2008-panasas,
-xing:sc2009-skyfs} is insufficient for today's workloads. In the last 20 years,
-many cutting-edge techniques for scaling file system metadata access in a
-single namespace have been proposed; most techniques target POSIX IO's global
-and hierarchical semantics.
+File system metadata management for a global namespace is difficult to scale.
+The attention that the topic has received, in both industry and academia,
+suggests that even decoupling metadata IO from data IO so that these services
+can scale independently~\cite{alam:pdsw2011-metadata-scaling,
+ghemawat:sosp2003-gfs, hildebrand:msst2005-pnfs, weil:osdi2006-ceph,
+welch:fast2008-panasas, xing:sc2009-skyfs} is insufficient for today's
+workloads. In the last 20 years, many cutting-edge techniques for scaling file
+system metadata access in a single namespace have been proposed; most
+techniques target POSIX IO's global and hierarchical semantics.
 
-Unfortunately, techniques for scaling file system metadata access in a global namespace are
-implemented in `clean-slate' file systems built from the ground up, so users
-that want to leverage techniques from different file systems must provision
-separate storage clusters. Adding software layers to the compute stack in this
-way complicates system management because administrators must now (1) configure
-data migrations across file system boundaries and (2) compare file system
-metadata management techniques, which includes understanding implementations
-and benchmarking systems with the workload.  Alternatively, developers that
-want the convenience of a single global namespace can integrate multiple
-techniques into an existing file system and expose configuration parameters to
-let users select metadata management strategies.  While this lets users compare
-techniques and minimizes data movement, it further increases the size of the
-stack because software layers are larger and their internals are more complex.
-This approach complicates system management because if techniques do not match
-the workload or a new technique becomes available, developers need to modify
-code, which takes time and jeopardizes the robustness of the file system.
+Unfortunately, techniques for scaling file system metadata access in a global
+namespace are implemented in `clean-slate' file systems built from the ground
+up. To leverage techniques from different file systems, administrators must
+provision separate storage clusters, which complicates management because
+administrators must now (1) configure data migrations across file system
+boundaries and (2) compare techniques by understanding internals and
+benchmarking systems.  Alternatively, developers that want the convenience of a
+single global namespace can integrate multiple techniques into an existing file
+system and expose configuration parameters to let users select metadata
+management strategies.  While this minimizes data movement and lets users
+compare techniques, it makes a single system more difficult to understand and
+places the burden on file system developers to modify code every time a new
+technique is needed or becomes available.
 
 As a result of this complexity and perceived scalability limitation,
 communities are abandoning global namespaces. But using different storage
-architectures, like object stores, means that legacy applications must be re-written
-and users must be re-trained to use new APIs and services. We make global
-namespaces scalable with the fundamental insight that
-many file systems have similar internals and that the policies from
-cutting-edge techniques for file system metadata access can be expressed in a
-system-agnostic way.  Given the right interfaces, application developers can
-design policies that guide file system metadata management techniques by
-composing existing file system abstractions without having intimate
-knowledge of file system internals.  To that end, we use the programmable
-storage approach~\cite{sevilla:eurosys17-malacology} to embed policy engines
-into file system metadata substrates to control the behavior, performance, and
-transparency of the entire software stack.
+architectures, like object stores, means that legacy applications must be
+re-written and users must be re-trained to use new APIs and services. We make
+global namespaces scalable with the fundamental insight that many file systems
+have similar internals and that the policies from cutting-edge techniques for
+file system metadata management can be expressed in a system-agnostic way.
+
+Driven by this insight, we make global namespaces scalable by designing
+domain-specific policies that guide internal file system metadata management
+techniques. We build a programmable file system with APIs that let developers
+of higher-level software ({\it i.e.} layers above the file system) express
+domain-specific knowledge in a storage-agnostic way.  Policy engines embedded
+in file system metadata management modules use this knowledge to guide internal
+mechanisms. Using these frameworks, we explore the design space of file system
+metadata management techniques and design scalable policies for (1) subtree
+load balancing, (2) relaxing subtree consistency and durability semantics, and
+(3) subtree schemas and generators.  These new, domain-specific customizations
+make metadata management more scalable and, thanks to our frameworks, these
+policies can be compared to approaches from related work. 
 
 \section{Contributions}
 
-Using the programmable storage approach, we design policy engines for three metadata
-management techniques: subtree load balancing, subtree semantics, and subtree
-schemas.  The first two expand on a strong foundation of related work while the
-third is a novel idea. 
+The first contribution is an API and policy engine for file system metadata,
+where administrators inject custom subtree load balancing logic that controls
+``when" subtrees are moved, ``where" subtrees are moved, and ``how much"
+metadata to move at each iteration.  We design and quantify load balancing
+policies that constantly adapt, which work well for mixed workloads ({\it
+e.g.}, compiling source code), policies that aggressively shed half their load,
+which work well for create-heavy workloads localized to a directory, and
+policies that shed parts of their load when a server's processing capacity is
+reached, which work well for create-heavy workloads in separate directories.
+We also show how the data management language and policy engine designed
+for file system metadata turns out to be an effective control plane for general
+load balancing and cache management.
 
-First, we present a methodology for programmable load balancing policies for
-file system metadata.  To help decouple policy from mechanism, we introduce a
-programmable file system, Mantle, that lets the designer inject custom
-balancing logic. We show the flexibility and transparency of this approach by
-replicating the strategy of a state-of-the-art metadata balancer and conclude
-by comparing this strategy to other custom balancers on the same system. We
-also show how the data management language and policy engine from Mantle turns
-out to be an effective control plane for general load balancing and cache
-management.
+The second contribution is an API and policy engine that lets administrators
+specify their consistency/durability requirements and dynamically assign them
+to subtrees in the same namespace; this allows administrators to optimize
+subtrees over time and space for different workloads. Letting different
+semantics co-exist in a global namespaces scales further and performs better
+than systems that use one strategy.  Using our framework we custom-fit subtrees
+to use cases and quantify the following performance improvements:
+checkpoint-restart jobs are almost an order of magnitude faster when fully
+relaxing consistency, user home directory workloads are close to optimal if
+interference is blocked, and the overhead of checking for partial results is
+negligible given the optimal heartbeat interval.
 
-Second, we present a methodology for programmable consistency and durability in
-a global namespace. Our prototype, Cudele, lets clients specify their
-consistency/durability requirements and dynamically assign them to subtrees in
-the same namespace, allowing users to optimize subtrees over time and space for
-different workloads. We confirm the performance benefits of techniques
-presented in related work but also explore new consistency/durability metadata
-designs, all integrated over the same storage system.  We show performance
-improvements when we custom fit subtree semantics to applications such as
-checkpoint-restart (91.7\(\times\) speedup), user home directories (0.03
-standard deviation from optimal), and users checking for partial results (2\%
-overhead).
-
-Third, we present a methodology for generating namespaces automatically and
-lazily, without incurring the costs of traditional metadata management,
+The third contribution is a methodology for generating namespaces automatically
+and lazily, without incurring the costs of traditional metadata management,
 transfer, and materialization.  We introduce namespace generators and schemas
 to describe file system metadata structure in a compact way. If clients and
 servers can express the namespace in this way, they can compact metadata,
 modify large namespaces more quickly, and generate only relevant parts of the
 namespace. The result is less network traffic, storage footprints, and overall
-metadata operations.  Our prototype, Tintenfisch, is a programmable file system
-that enables namespace generators.
+metadata operations.  
 
 In addition to academic publications, these contributions and their
 corresponding prototypes have received considerable attention in the community.
@@ -110,36 +110,37 @@ semantics. Chapter~\ref{chp:prototyping-platform} describes our prototyping
 platform, Ceph, and the interfaces we added to create a programmable storage
 system called Malacology.
 
-Chapter~\ref{chp:mantle} describes the Mantle environment and API for load
-balancing subtrees across a metadata cluster. We motivate the framework by
-measuring the advantages of file system workload locality and examining the
-current CephFS implementation designed in~\cite{weil:osdi2006-ceph,
-weil:sc2004-dyn-metadata}. We show that the framework can replicate techniques
-from related work and show load balancers that work well for different
-workloads. Chapter~\ref{chp:mantle-beyond} shows the generality of the approach
-by using the Mantle API for load balancing in ZLog, an implementation of the
+Chapter~\ref{chp:mantle} describes the API and policy engine for load balancing
+subtrees across a metadata cluster. We motivate the framework by measuring the
+advantages of file system workload locality and examining the current CephFS
+implementation designed in~\cite{weil:osdi2006-ceph, weil:sc2004-dyn-metadata}.
+Our prototype implementation, Mantle, is used for the evaluation.
+Chapter~\ref{chp:mantle-beyond} shows the generality of the approach by using
+the API for load balancing in ZLog, an implementation of the
 CORFU~\cite{balakrishnan_corfu_2012} API on Ceph, and for cache management in
 ParSplice~\cite{perez:jctc20150parsplice}, a molecular dynamics simulation
 developed at Los Alamos National Laboratory.
 
-Chapter~\ref{chp:cudele} describes the Cudele API and framework for relaxing
+Chapter~\ref{chp:cudele} describes the API and policy engine for relaxing
 consistency and durability semantics in a global file system namespace. We
 focus on building blocks called mechanisms and show how administrators can
-build application-specific semantics for subtrees.  We motivate Cudele by
+build application-specific semantics for subtrees.  We motivate the work by
 measuring the POSIX IO overheads in CephFS and by examining current workloads
-in HPC and Hadoop/Spark. The microbenchmarks show the performance of individual
-mechanisms while the macrobenchmarks model real-world use cases.
+in HPC and in the cloud. Microbenchmarks of our prototype implementation,
+Cudele, show the performance of individual mechanisms while the macrobenchmarks
+model real-world use cases.
 
 Even if clients relax consistency and durability semantics in a global
 namespace, there are still scenarios where clients create large amounts of file
 system metadata that must be transferred, managed, and materialized at read
 time; this is another scalability bottleneck for file system metadata access.
-Chapter~\ref{chp:tintenfisch} describes Tintenfisch, which lets clients and
-servers generate subtrees to reduce network traffic, storage footprints, and
-file system metadata load. We examine three motivating examples from three
-different domains: high performance computing, high energy physics, and large
-scale simulations. We then present namespace schemas for categorizing file
-system metadata structure and namespace generators for compacting metadata.
+Chapter~\ref{chp:tintenfisch} describes our implementation called Tintenfisch,
+which lets clients and servers generate subtrees to reduce network traffic,
+storage footprints, and file system metadata load. We examine three motivating
+examples from three different domains: high performance computing, high energy
+physics, and large scale simulations. We then present namespace schemas for
+categorizing file system metadata structure and namespace generators for
+compacting metadata.
 
 Chapter~\ref{chp:conclusion} concludes and outlines future work.
 
