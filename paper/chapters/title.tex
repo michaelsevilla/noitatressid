@@ -23,12 +23,12 @@ Global file system namespaces are difficult to scale because of the overheads
 of POSIX IO metadata management. The file system metadata IO created by today's
 workloads subjects the underlying file system to small and frequent requests
 that have inherent locality. As a result, metadata IO scales differently than
-data IO.  Scalable file system metadata IO techniques address many
+data IO.  Prior work about scalable file system metadata IO addresses many
 facets of metadata management, including global semantics ({\it e.g.}, strong
 consistency, durability) and hierarchical semantics ({\it e.g.}, path
 traversal), but these techniques are integrated into `clean-slate' file
-systems, which are difficult to manage, and `dirty-slate' file systems, which
-are difficult to understand and evolve.  
+systems, which are hard to manage, and/or `dirty-slate' file systems, which
+are challenging to understand and evolve.
 
 This thesis makes global file system namespaces scalable by designing
 domain-specific policies that shape metadata management techniques.  To
@@ -42,8 +42,8 @@ balancing, (2) relaxing subtree consistency and durability semantics, and (3)
 subtree schemas and generators. Each framework has a corresponding prototype:
 Mantle for programmable file system metadata load balancing, Cudele for
 programmable consistency and durability, and Tintenfisch for file system
-metadata generation. These new customizations make metadata management more
-scalable using domain-specific knowledge but are also influenced by, and
+metadata generation. These new customizations improve the scalability of file system
+metadata management using domain-specific knowledge and are influenced by, and
 directly compared against, approaches that were previously proposed by other
 research groups.
 
