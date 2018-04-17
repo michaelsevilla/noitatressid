@@ -30,25 +30,18 @@ traversal), but these techniques are integrated into `clean-slate' file
 systems, which are hard to manage, and/or `dirty-slate' file systems, which
 are challenging to understand and evolve.
 
-The fundamental insight of this thesis is that the default policies of the metadata management
-techniques in today's file systems are causing scalability problems for
-specialized use cases. Our solution dynamically assigns customized solutions
-to various parts of the file system namespace and we present domain-specific
-policies that shape metadata management techniques.  To facilitate the
-systematic exploration of this design space, we build a programmable file
-system with APIs that let developers of higher layers express domain-specific
+The fundamental insight of this thesis is that the default policies of metadata
+management techniques in today's file systems are causing scalability problems
+for specialized use cases. Our solution dynamically assigns customized
+solutions to various parts of the file system namespace, which facilitates
+domain-specific policies that shape metadata management techniques.  To
+systematically explore this design space, we build a programmable file system
+with APIs that let developers of higher layers express their domain-specific
 knowledge in a storage-agnostic way.  Policy engines embedded in the file
-system use this knowledge to guide internal
-mechanisms to make metadata management more scalable.  Using these frameworks,
-we design scalable policies, inspired by the workload, for (1) subtree load
-balancing, (2) relaxing subtree consistency and durability semantics, and (3)
-subtree schemas and generators. Each framework has a corresponding prototype:
-Mantle for programmable file system metadata load balancing, Cudele for
-programmable consistency and durability, and Tintenfisch for file system
-metadata generation. These new customizations improve the scalability of file system
-metadata management using domain-specific knowledge and are influenced by, and
-directly compared against, approaches that were previously proposed by other
-research groups.
+system use this knowledge to guide internal mechanisms to make metadata
+management more scalable.  Using these frameworks, we design scalable policies,
+inspired by the workload, for (1) subtree load balancing, (2) relaxing subtree
+consistency and durability semantics, and (3) subtree schemas and generators.  
 
 Each system is implemented on CephFS, providing state-of-the-art file system
 metadata management techniques to a leading open-source project. We have had
