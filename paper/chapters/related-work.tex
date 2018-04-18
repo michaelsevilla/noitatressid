@@ -90,8 +90,16 @@ For each use case, we provide motivation from HPC and cloud workloads;
 specifically, we look at users using the file system in parallel to run
 large-scale experiments in HPC and parallel runtimes that use the file system,
 such as MapReduce~\cite{dean:osdi2004-mapreduce} (referred to as Hadoop, the
-open-source counterpart) and Spark~\cite{zaharia:nsdi2012-spark}.
+open-source counterpart~\cite{website:hadoop}) and
+Spark~\cite{zaharia:nsdi2012-spark}.  We choose these use cases because they
+are representative of two very different architectures:  scale-out and scale-up
+(although the line between scale-up and out has been blurred recently
+~\cite{gigaspaces:whitepaper2011-su-vs-so,
+michael:2007pdps-scale-up-x-scale-out,
+rowstron:hotcdp2012-hadoop-vs-single-node, sevilla:discs2013-framework
+sevilla:lspp2014-supmr}).
 
+recently
 % Locality is a big part of workloads
 \subsection{Spatial Locality Within Directories}
 \label{sec:spatial-locality-within-directories}

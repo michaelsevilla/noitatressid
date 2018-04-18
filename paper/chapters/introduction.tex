@@ -90,7 +90,9 @@ Mantle was merged into Ceph and funded by the Center for Research in Open
 Source Software and Los Alamos National Laboratory; Malacology and Mantle were
 featured in the Next Platform magazine and the 2017 Lua Workshop; and
 Malacology, Cudele, and Tintenfisch are some of the first
-Popper-compliant~\cite{jimenez:ipdpsw17-popper} conference papers.
+Popper-compliant~\cite{jimenez:login16-popper, jimenez:ipdpsw17-popper,
+jimenez_tackling_2015, jimenez_aver_2016, jimenez:rr18-popper} conference
+papers~\footnote{http://falsifiable.us/}.
 
 \section{Outline}
 
@@ -108,18 +110,21 @@ problem and shows why today's jobs incur these types of workloads. We also
 survey related work for providing scalability while enforcing POSIX IO
 semantics. Chapter~\ref{chp:prototyping-platform} describes our prototyping
 platform, Ceph, and the interfaces we added to create a programmable storage
-system called Malacology.
+system called Malacology. A version of this work appears in EuroSys
+2017~\cite{sevilla:eurosys17-malacology}.
 
 Chapter~\ref{chp:mantle} describes the API and policy engine for load balancing
 subtrees across a metadata cluster. We motivate the framework by measuring the
 advantages of file system workload locality and examining the current CephFS
 implementation designed in~\cite{weil:osdi2006-ceph, weil:sc2004-dyn-metadata}.
-Our prototype implementation, Mantle, is used for the evaluation.
+Our prototype implementation, Mantle, is used for the evaluation. A version of
+this work appears in Supercomputing 2015~\cite{sevilla:sc15-mantle}.
 Chapter~\ref{chp:mantle-beyond} shows the generality of the approach by using
 the API for load balancing in ZLog, an implementation of the
 CORFU~\cite{balakrishnan_corfu_2012} API on Ceph, and for cache management in
 ParSplice~\cite{perez:jctc20150parsplice}, a molecular dynamics simulation
-developed at Los Alamos National Laboratory.
+developed at Los Alamos National Laboratory. A version of this work appears in
+CCGrid 2018~\cite{sevilla:ccgrid18-parsplice}.
 
 Chapter~\ref{chp:cudele} describes the API and policy engine for relaxing
 consistency and durability semantics in a global file system namespace. We
@@ -128,7 +133,8 @@ build application-specific semantics for subtrees.  We motivate the work by
 measuring the POSIX IO overheads in CephFS and by examining current workloads
 in HPC and in the cloud. Microbenchmarks of our prototype implementation,
 Cudele, show the performance of individual mechanisms while the macrobenchmarks
-model real-world use cases.
+model real-world use cases. A version of this work appears in IPDPS
+2018~\cite{sevilla:ipdps18-cudele}.
 
 Even if clients relax consistency and durability semantics in a global
 namespace, there are still scenarios where clients create large amounts of file
@@ -140,7 +146,8 @@ storage footprints, and file system metadata load. We examine three motivating
 examples from three different domains: high performance computing, high energy
 physics, and large scale simulations. We then present namespace schemas for
 categorizing file system metadata structure and namespace generators for
-compacting metadata.
+compacting metadata. A version of this work appears in a technical report
+published in 2018~\cite{sevilla:techreport18-tintenfisch}.
 
 Chapter~\ref{chp:conclusion} concludes and outlines future work.
 
