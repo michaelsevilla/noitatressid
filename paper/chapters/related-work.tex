@@ -7,7 +7,7 @@ and allow users to group similar data together. Although file system namespaces
 are the most well known, other examples include DNS, LAN network topologies,
 and scoping in programming languages.  File system namespaces are popular
 because they fit our mental organization as humans and are part of the POSIX IO
-standard. The momentum of namespaces as an abstraction and the overwhelming
+standard. The momentum of namespaces as a data model and the overwhelming
 amount of legacy code written for namespaces makes the data model relatively
 future proof.
 
@@ -29,12 +29,12 @@ shown that separating metadata and data traffic is insufficient for scaling to
 large systems and identify the metadata service as the performance critical
 component.
 
-First, we scope the discussion, describe general file system use cases, and
+First, we describe general file system use cases and
 characterize the resultant metadata workloads. Next, we describe three
 semantics that users expect from file systems: strong consistency, durability,
 and a hierarchical organization.  For each semantic, we explain why it is
 problematic for today's metadata workloads and survey optimizations in related
-work.
+work. We conclude this section by scoping the thesis.
 
 %% general optimization An accepted optimization for distributed file systems
 %is to maintain system-specific information about accessing files.  Per-client
@@ -53,49 +53,6 @@ work.
 %of data locations.  Other systems have similar capabilities but are not
 %enumerated here because these optimizations are for data IO.  Instead we focus
 %on similar optimizations for serving the metadata itself.
-
-\section{Scope}
-
-% What is an object store
-This thesis addresses file system metadata in a POSIX IO namespace; metadata
-management in object stores is an orthogonal issue.  Object stores have been
-successfully used for many use cases, such as computation
-heavy~\cite{nightingale:osdi2012-fds} and
-photo-based~\cite{beaver:osdi2010-haystack} workloads.  They have excellent
-flexibility and scalability because (1) they expose a flat namespace and (2)
-the metadata specification is less restrictive. For (1), the flat namespace
-means that data is not related so it can be distributed evenly with a hash.
-Metadata can be stored either with the data as extended attributes ({\it e.g.},
-Swift~\cite{toor:nas2012-swift}) or at some pre-defined offset of the data
-({\it e.g.}, FDS~\cite{nightingale:osdi2012-fds}). For (2), a less restrictive
-metadata scheme removes extraneous operations and fields for each object. For
-example, photo-based storage has no need for the traditional POSIX IO
-permission fields~\cite{beaver:osdi2010-haystack}. Because of this generality,
-object stores are usually used as the data lake for file systems, distributed
-block devices, and large object blobs ({\it e.g.}, S3/Swift objects).
-
-% Relation to file systems
-Despite the scalability benefits of object stores, POSIX IO-compliant file
-systems are not going away. File systems are important for legacy software,
-which expect file system semantics such as strong consistency, durability, and
-hierarchical ownership.  File systems also accommodate users accustomed to
-POSIX IO namespaces. For example, many users have ecosystems that leverage file
-sharing services, such as creating/deleting shares, permissions ({\it e.g.},
-listing, showing, providing/denying access to shares), snapshotting or
-cloning, and coordinating file system mounts/unmounts.  Although an object
-store can provide data storage for file systems, it is a poor solution for
-managing hierarchical metadata because of metadata workload characteristics
-({\it i.e.} small/frequent requests with spatial/temporal locality).
-
-% Other storage
-Metadata management in other systems is beyond the scope of this work. We are
-not targeting a myriad of topics, including: data placement and arrangement,
-since this is handled by CRUSH~\cite{weil:osdi2006-ceph}, metadata
-extensibility and index format ({\it e.g.}, SpyGlass\cite{leung:fast2009-spyglass} and
-SmartStore~\cite{hua:sc2009-smartstore}), and transformations on metadata with
-a DBMS ({\it e.g.}, LazyBase~\cite{cipar:eurosys2012-lazybase}). 
-
-
 
 \section{Metadata Workloads}
 
@@ -166,10 +123,10 @@ users unintentionally access directories in a shared file system.
 \subsection{Temporal Locality During Flash Crowds}
 \label{sec:temporal-locality-during-flash-crowds}
 
-Creates in the same directory is a problem in HPC , mostly due to
+Creates in the same directory is a problem in HPC, mostly due to
 checkpoint-restart~\cite{bent_plfs_2009}. Flash crowds of checkpoint-restart
 clients simultaneously open, write, and close files within a directory.  But
-the workload also appears in cloud workloads: Hadoop/Spark use the file
+the workload also appears in cloud jobs: Hadoop and Spark use the file
 \newcomment{system to assign work units to workers and the performance is
 proportional to the open/create throughput of the underlying file
 system~\cite{xiao:socc15-shardfs, shi:vldb15-spark,
@@ -189,20 +146,29 @@ namespace.}
 \subsection{Listing Directories}
 \label{sec:listing-directories}
 
-As discussed before, this is common for general users ({\it e.g.}, reading a
-directory after a job completes), but users also use the file system for its
+As discussed before, listing directories is common for general users ({\it e.g.}, reading a
+directory after a job completes), but the file system is also used for its
 centralized consistency.  For example, users often leverage the file system to
 check the progress of jobs using \texttt{ls} even though this operation is
 notoriously heavy-weight~\cite{carns:ipdps09-pvfs, eshel:fast10-panache}. The
 number of files or size of the files is indicative of the progress. This
 practice is not too different from cloud systems that use the file system to
 manage the progress of jobs; Spark/Hadoop writes to temporary files, renames
-them when complete, and creates a ``DONE" file to indicate to the runtime that
+them when complete, and creates a ``DONE" file to indicate to the scheduler that
 the task did not fail and should not be re-scheduled on another node.
 \newcomment{For example, the browser interface lets Hadoop/Spark users check progress by
 querying the file system and returning a \% of job complete metric.} 
 
 \subsection{Performance and Resource Utilization}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.7\textwidth]{./chapters/cudele/figures/overhead-creates.png}
+  \caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-compile/visualize/viz.ipynb}{source}]
+  For the CephFS metadata server, create-heavy workloads ({\it e.g.},
+  \texttt{untar}) incur the highest disk, network, and CPU utilization because of
+  consistency/durability demands.}\label{fig:overhead-creates}
+\end{figure}
 
 \begin{figure}[t]
   \centering	
@@ -230,15 +196,6 @@ correlated with phases of the job: untarring the code has high, sequential
 metadata load across directories and compiling the code has hotspots in the
 \texttt{arch}, \texttt{kernel}, \texttt{fs}, and \texttt{mm} directories.  
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.7\textwidth]{./chapters/cudele/figures/overhead-creates.png}
-  \caption{[\href{https://github.com/michaelsevilla/cudele-popper/blob/master/experiments/baseline-compile/visualize/viz.ipynb}{source}]
-  For the CephFS metadata server, create-heavy workloads ({\it e.g.},
-  \texttt{untar}) incur the highest disk, network, and CPU utilization because of
-  consistency/durability demands.}\label{fig:overhead-creates}
-\end{figure}
-
 \section{Global Semantics: Strong Consistency}
 
 % what is it
@@ -257,7 +214,7 @@ threads to one for all metadata servers~\cite{weil:osdi2006-ceph,
 alam:pdsw2011-metadata-scaling, ren:sc2014-indexfs}. 
 
 % heavy weight agreement
-Coming to an agreement has its own set of performance and accuracy trade-offs.
+Agreeing on the state of file system metadata has its own set of performance and accuracy trade-offs.
 Sophisticated, standalone consensus engines like
 PAXOS~\cite{lamport_parttime_1998}, Zookeeper~\cite{hunt_zookeeper_2010}, or
 Chubby~\cite{burrows_chubby_2006} are common techniques for maintaining
@@ -267,8 +224,8 @@ Ceph and Zookeeper in Apache stacks to maintain cluster state but not for
 mediating IO.  
 
 % leases, locks, capabilities
-Many distributed file systems use state machines to guard access to file system
-metadata.  These state machines are stored with traditional file system
+Many distributed file systems use state machines to agree on file system
+metadata state.  These state machines are stored with traditional file system
 metadata and they enforce the level of isolation that clients are guaranteed
 while they are reading or writing a file. CephFS~\cite{docs:cephcaps,
 weil:phdthesis07} calls the state machines ``capabilities" and they are managed
@@ -289,7 +246,7 @@ locking protocols (Section~\S\ref{sec:lock-management}), caching inodes
 \subsection{Lock Management}
 \label{sec:lock-management}
 
-The global view of locks are read and modified with RPCs from clients.  Single
+The global view of locks are usually read and modified with RPCs from clients.  Single
 node metadata services, such as the Google File System
 (GFS)~\cite{ghemawat:sosp2003-gfs} and
 HDFS~\cite{shvachko:login2012-hdfs-scalability} have the simplest
@@ -385,7 +342,7 @@ consistency semantics are for application-specific optimizations.
 \section{Global Semantics: Durability}
 
 While durability is not specified by POSIX IO, users expect that files they
-reate or modify survive failures. The accepted technique for achieving
+create or modify survive failures. The accepted technique for achieving
 durability is to append events to a journal of metadata updates.  Similar to
 LFS~\cite{rosenblum:acm1992-LFS} and WAFL~\cite{hitz:wtec1994-WAFL} the
 metadata journal is designed to be large (on the order of MBs) which ensures
@@ -613,7 +570,7 @@ hard-coded design decisions.
 
 \section{Conclusion}
 
-This survey suggests that storage systems struggle:
+This survey suggests that distributed file systems struggle:
 
 \begin{enumerate}
 
@@ -641,5 +598,49 @@ duplication and long code paths.
 \end{enumerate}
 
 We use the programmable storage approach to ease these burdens and to
-facilitate more scalable namesapces.
+facilitate more scalable namespaces.
+
+\section{Scope}
+
+% What is an object store
+This thesis addresses file system metadata in a POSIX IO namespace; metadata
+management in object stores is an orthogonal issue.  Object stores have been
+successfully used for many use cases, such as computation
+heavy~\cite{nightingale:osdi2012-fds} and
+photo-based~\cite{beaver:osdi2010-haystack} workloads.  They have excellent
+flexibility and scalability because (1) they expose a flat namespace and (2)
+the metadata specification is less restrictive. For (1), the flat namespace
+means that data is not related so it can be distributed evenly with a hash.
+Metadata can be stored either with the data as extended attributes ({\it e.g.},
+Swift~\cite{toor:nas2012-swift}) or at some pre-defined offset of the data
+({\it e.g.}, FDS~\cite{nightingale:osdi2012-fds}). For (2), a less restrictive
+metadata scheme removes extraneous operations and fields for each object. For
+example, photo-based storage has no need for the traditional POSIX IO
+permission fields~\cite{beaver:osdi2010-haystack}. Because of this generality,
+object stores are usually used as the data lake for file systems, distributed
+block devices, and large object blobs ({\it e.g.}, S3/Swift objects).
+
+% Relation to file systems
+Despite the scalability benefits of object stores, POSIX IO-compliant file
+systems are not going away. File systems are important for legacy software,
+which expect file system semantics such as strong consistency, durability, and
+hierarchical ownership.  File systems also accommodate users accustomed to
+POSIX IO namespaces. For example, many users have ecosystems that leverage file
+sharing services, such as creating/deleting shares, permissions ({\it e.g.},
+listing, showing, providing/denying access to shares), snapshotting or
+cloning, and coordinating file system mounts/unmounts.  Although an object
+store can provide data storage for file systems, it is a poor solution for
+managing hierarchical metadata because of metadata workload characteristics
+({\it i.e.} small/frequent requests with spatial/temporal locality).
+
+% Other storage
+Metadata management in other systems is beyond the scope of this work. We are
+not targeting a myriad of topics, including: data placement and arrangement,
+since this is handled by CRUSH~\cite{weil:osdi2006-ceph}, metadata
+extensibility and index format ({\it e.g.}, SpyGlass\cite{leung:fast2009-spyglass} and
+SmartStore~\cite{hua:sc2009-smartstore}), and transformations on metadata with
+a DBMS ({\it e.g.}, LazyBase~\cite{cipar:eurosys2012-lazybase}). 
+
+
+
 
