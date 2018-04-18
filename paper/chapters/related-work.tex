@@ -2,32 +2,33 @@
 \label{chp:related-work}
 
 % what is a global namespace
-Namespaces resolve names to data. Traditionally, namespaces are hierarchical
-and allow users to group similar data together. Although file system namespaces
-are the most well known, other examples include DNS, LAN network topologies,
-and scoping in programming languages.  File system namespaces are popular
-because they fit our mental organization as humans and are part of the POSIX IO
-standard. The momentum of namespaces as a data model and the overwhelming
-amount of legacy code written for namespaces makes the data model relatively
-future proof.
+A namespace organizes data by name. Traditionally, namespaces are hierarchical
+and allow users to (1) group similar data together and (2) reuse names.
+Examples include file systems, DNS, LAN network topologies, and scoping in
+programming languages.  Because of this tree-likes structure, we call portions
+of the namespaces ``subtrees".  The momentum of namespaces as a data model and
+the overwhelming amount of legacy code written for namespaces make the data
+model relatively future proof.
 
 % file metadata
-In file systems, whenever a file is created, modified, or deleted, the client
-must access the file's metadata. File system metadata contains information
-about the file, like size, links, access times, attributes, permissions/access
-control lists (ACLs), and ownership.  In single disk file systems, clients
-consult metadata before seeking to data, by translating the file name to an
-inode and using that inode to lookup metadata in an inode table located at a
-fixed location on disk.  Distributed file systems use a similar idea; clients
-look in one spot for their metadata, usually a metadata service, and use that
-information to find data in a storage cluster.  State-of-the-art distributed
-file systems decouple metadata from data access so that data and metadata I/O
-can scale independently~\cite{alam:pdsw2011-metadata-scaling,
-ghemawat:sosp2003-gfs, hildebrand:msst2005-pnfs, weil:osdi2006-ceph,
-welch:fast2008-panasas, xing:sc2009-skyfs}.  Unfortunately, recent trends have
-shown that separating metadata and data traffic is insufficient for scaling to
-large systems and identify the metadata service as the performance critical
-component.
+In this thesis, we focus on file system namespaces.  File system namespaces are
+popular because they fit our mental organization as humans and are part of the
+POSIX IO standard.  In file systems, whenever a file is created, modified, or
+deleted, the client must access the file's metadata. File system metadata
+contains information about the file, like size, links, access times,
+attributes, permissions/access control lists (ACLs), and ownership.  In single
+disk file systems, clients consult metadata before seeking to data, by
+translating the file name to an inode and using that inode to lookup metadata
+in an inode table located at a fixed location on disk.  Distributed file
+systems use a similar idea; clients look in one spot for their metadata,
+usually a metadata service, and use that information to find data in a storage
+cluster.  State-of-the-art distributed file systems decouple metadata from data
+access so that data and metadata I/O can scale
+independently~\cite{alam:pdsw2011-metadata-scaling, ghemawat:sosp2003-gfs,
+hildebrand:msst2005-pnfs, weil:osdi2006-ceph, welch:fast2008-panasas,
+xing:sc2009-skyfs}.  Unfortunately, recent trends have shown that separating
+metadata and data traffic is insufficient for scaling to large systems and
+identify the metadata service as the performance critical component.
 
 First, we describe general file system use cases and
 characterize the resultant metadata workloads. Next, we describe three
@@ -401,14 +402,14 @@ achieves high performance but sacrifices cost flexibility.
 \section{Hierarchical Semantics}
 
 Users identify and access file system data with a path name, which is a list of
-directories completed with a file name.  File systems traverse (or resolve)
+directories terminated with a file name.  File systems traverse (or resolve)
 paths to check permissions and to verify that files exist. Files and
 directories inherit some of the semantics from their parent directories, like
 ownership groups and permissions. For some attributes, like access and
 modifications times, parent directories must be updated as well. 
 
 % Path traversal
-To maintain these semantics file systems implement path traversal. Path
+To maintain these semantics, file systems implement path traversal. Path
 traversal starts at the root of the file system and checks each path component
 until reaching the desired file. This process has write and read amplification
 because accessing lower subtrees in the hierarchy requires RPCs to upper
@@ -416,23 +417,27 @@ levels. To reduce this amplification, many systems try to leverage the
 workload's locality; namely that directories at the top of a namespace are
 accessed more often~\cite{ren:sc2014-indexfs} and files that are close in the
 namespace spatially are more likely to be accessed
-together~\cite{weil:osdi2006-ceph, weil:sc2004-dyn-metadata}.
+together~\cite{weil:osdi2006-ceph, weil:sc2004-dyn-metadata}.  If carefully
+planned, assigning metadata to servers can achieve both even load distribution
+and locality, which facilitates multi-object operations and more efficient
+transactions.
 
 \subsection{Caching Paths}
 
 % address dirs at the top
 To leverage the fact that directories at the top of the namespace are accessed
-more often, some systems cache ``ancestor directories", {\it i.e.} metadata for
-entire paths. In GIGA+~\cite{patil:fast2011-giga+}, clients contact the parent
-and traverse down its ``partition history" to find which authority metadata
-server has the data.  In the follow-up work, IndexFS, improves lookups and
-creates by having clients cache permissions instead of attributes.  Similarly,
-Lazy Hybrid~\cite{brandt:msst2003-lh} hashes the file name to locate metadata
-but maintains extra per-file metadata to manage permissions.  Although these
-techniques improve performance and scalability, especially for create intensive
-workloads, they do not leverage the locality inherent in file system workloads.
-For example, IndexFS's inode cache reduces RPCs by caching ancestor paths for
-metadata writes but the cache can be thrashed by random reads.
+more often, some systems cache ``ancestor directories", {\it i.e.} parent
+metadata for the file in question.  In GIGA+~\cite{patil:fast2011-giga+},
+clients contact the parent and traverse down its ``partition history" to find
+which authority metadata server has the data.  In the follow-up work, IndexFS,
+improves lookups and creates by having clients cache permissions instead of all
+metadata.  Similarly, Lazy Hybrid~\cite{brandt:msst2003-lh} hashes the file
+name to locate metadata but maintains extra per-file metadata to manage
+permissions.  Although these techniques improve performance and scalability,
+especially for create intensive workloads, they do not leverage the locality
+inherent in file system workloads.  For example, IndexFS's inode cache reduces
+RPCs by caching metadata for ancestor paths but this cache can be thrashed by
+random writes.
 
 % covering up locality drawbacks with more caches
 Caching can also be used to exploit locality.  Many file systems hash the
@@ -451,20 +456,20 @@ ability to dynamically adapt to flash crowds.
 
 % distributed file metadata
 File systems like GIGA+, CephFS, SkyFS, HBA, and Ursa Minor use active-active
-metadata clusters instead of single metadata servers.  Applications perform
-better with dedicated metadata servers~\cite{sevilla:sc15-mantle,
-ren:sc2014-indexfs} but provisioning a metadata server for every client is
-unreasonable. So finding the right number of metadata servers per client is a
-challenge.  This problem is exacerbated by current hardware and software trends
-that encourage more clients; for example, HPC architectures are transitioning
-from complex storage stacks with burst buffer, file system, object store, and
-tape tiers to more simplified stacks with just a burst buffer and object
+metadata clusters. Finding the right number of metadata servers per client is a
+challenge; applications perform better with dedicated metadata
+servers~\cite{sevilla:sc15-mantle, ren:sc2014-indexfs} but provisioning a
+metadata server for every client is unreasonable.  This problem is exacerbated
+by current hardware and software trends that encourage more clients. For
+example, HPC architectures are transitioning from complex storage stacks with
+burst buffer, file system, object store, and tape tiers to more simplified
+stacks with just a burst buffer and object
 store~\cite{bent:login16-hpc-trends}. This puts pressure on data access because
 more requests end up hitting the same layer and old techniques of hiding
 latencies while data migrates across tiers are no longer applicable.
 
 % addressing inconsistency
-\subsubsection{Correctness: Addressing Metadata Inconsistency}
+\subsubsection{Addressing Metadata Inconsistency}
 
 Distributing metadata across a cluster requires distributed transactions and
 cache coherence protocols to ensure strong consistency.  For example, file
@@ -472,7 +477,7 @@ creates are fast in IndexFS because directories are fragmented and directory
 entries can be written in parallel but reads are subject to cache locality and
 lease expirations.  ShardFS~\cite{xiao:socc15-shardfs} makes the opposite
 trade-off because metadata reads are fast and resolve with 1 RPC while metadata
-writes are slow for everyone because they require serialization and
+writes are slow for all clients because they require serialization and
 multi-server locking.  ShardFS achieves this by pessimistically replicating
 directory state and using optimistic concurrency control for conflicts, where
 operations fall back to two-phase locking if there is a conflict at
@@ -484,11 +489,11 @@ metadata access faster). When metadata is exchanged between metadata servers
 these sessions/caches must be flushed and new statistics exchanged with a
 scatter-gather process; this halts updates on the directories and blocks until
 the authoritative metadata server responds~\cite{docs:cephinternals}.  These
-protocols are discussed in more detail in the next section but their inclusion
-here is a testament to the complexity of migrating metadata.
+protocols are discussed in more detail in Chapter~\ref{chp:mantle} but their
+inclusion here is a testament to the complexity of migrating metadata.
 
 % address locality
-\subsubsection{Performance: Leveraging Locality}
+\subsubsection{Leveraging Locality}
 
 Approaches that leverage the workload's spatial locality ({\it i.e.} requests
 targeted at a subset of directories or files) focus on metadata distribution
@@ -511,14 +516,11 @@ Farsite~\cite{doucer:osdi2006-farsite-dir} traverse the namespace to assign
 related inode ranges, such as inodes in the same subtree, to servers. This
 benefits performance because the metadata server nodes can act independently
 without synchronizing their actions, making it easy to scale for breadth
-assuming that incoming data is evenly partitioned.  If carefully planned,
-assigning metadata to servers can achieve both even load distribution and
-locality, which facilitates multi-object operations and more efficient
-transactions. Unfortunately, static distribution limits the system's ability to
-adapt to hotspots/flash crowds and to maintain balance as data is added.  Some
-systems, like Panasas, allow certain degrees of dynamicity by supporting the
-addition of new subtrees at runtime, but adapting to the current workload is
-ignored. 
+assuming that incoming data is balanced hierarchically.  Unfortunately, static
+distribution limits the system's ability to adapt to hotspots/flash crowds and
+to maintain balance as data is added.  Some systems, like Panasas, allow
+certain degrees of dynamicity by supporting the addition of new subtrees at
+runtime, but adapting to the current workload is ignored. 
 
 %For metadata writes it does a distributed transaction; monotonic writes with
 %concurrent clients fail and do pessimistic locking through a mediated lock
@@ -527,7 +529,7 @@ ignored.
 %a primary then non-primary, if permissions decrease it executes on all
 %non-primary then on primary.
 
-\subsubsection{Performance: Load Balancing}
+\subsubsection{Load Balancing}
 
 % approaches to load balancing (strong = more resuorces per unit work, weak =
 % fixed resource per work unit)
@@ -545,7 +547,7 @@ never incur extra RPCs due to a full cache.  CephFS employs both techniques to
 a lesser extent; directories can be replicated or sharded but the caching and
 replication policies do not change depending on the balancing
 technique~\cite{weil:sc2004-dyn-metadata, weil:phdthesis07}.  Despite the
-performance benefits these techniques add complexity and jeopardize the
+performance benefits, these techniques add complexity and jeopardize the
 robustness and performance characteristics of the metadata service because the
 systems now need (1) policies to guide the migration decisions and (2)
 mechanisms to address inconsistent states across
