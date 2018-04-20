@@ -342,11 +342,14 @@ than consistent, forcing applications to use append rather than seeks and
 writes; in the cloud, Spark and Hadoop stacks use the Hadoop File System
 (HDFS)~\cite{shvachko:msst10}, which lets clients ignore this type of
 consistency completely by letting interfering clients read files opened for
-writing~\cite{hakimzadeh:dais14-hdfs-consistency}; and CephFS offers the ``Lazy
-IO" option, which lets clients buffer reads/writes even if other clients have
-the file open and if the client maintains its own cache
-coherency~\cite{docs:cephcaps}. As noted earlier, many of these relaxed
-consistency semantics are for application-specific optimizations.
+writing~\cite{hakimzadeh:dais14-hdfs-consistency};
+HopsFS~\cite{niaza:fast17-hopsfs}, a fork of HDFS with a more scalable metadata
+service, relaxes consistency even further by allowing multiple readers and
+multiple writers; and CephFS offers the ``Lazy IO" option, which lets clients
+buffer reads/writes even if other clients have the file open and if the client
+maintains its own cache coherency~\cite{docs:cephcaps}. As noted earlier, many
+of these relaxed consistency semantics are for application-specific
+optimizations.
 
 \section{Global Semantics: Durability}
 
@@ -425,10 +428,14 @@ levels. To reduce this amplification, many systems try to leverage the
 workload's locality; namely that directories at the top of a namespace are
 accessed more often~\cite{ren:sc2014-indexfs} and files that are close in the
 namespace spatially are more likely to be accessed
-together~\cite{weil:osdi2006-ceph, weil:sc2004-dyn-metadata}.  If carefully
-planned, assigning metadata to servers can achieve both even load distribution
-and locality, which facilitates multi-object operations and more efficient
-transactions.
+together~\cite{weil:osdi2006-ceph, weil:sc2004-dyn-metadata}.  HopsFS takes a
+much more specialized approach than caching by forcing clients to traverse the
+namespace in the same order, which improves performance of traversals that span
+multiple servers because entire subtrees can be locked and done in parallel.
+This also introduces deadlocks when clients try to take the same inode; this is
+solved with timeouts.  If carefully planned, assigning metadata to servers can
+achieve both even load distribution and locality, which facilitates
+multi-object operations and more efficient transactions.
 
 \subsection{Caching Paths}
 
@@ -489,7 +496,10 @@ writes are slow for all clients because they require serialization and
 multi-server locking.  ShardFS achieves this by pessimistically replicating
 directory state and using optimistic concurrency control for conflicts, where
 operations fall back to two-phase locking if there is a conflict at
-verification time.
+verification time. HopsFS locks entire subtrees from the application layer and
+performs operations in parallel when metadata is distributed. This makes
+conflicting operations on the same subtree slow but this trade-off is
+justified by the paper's in-depth analysis of observed workloads.
 
 Another example of the overheads of addressing inconsistency is how CephFS
 maintains client sessions and inode caches for capabilities (which in turn make
@@ -505,11 +515,14 @@ inclusion here is a testament to the complexity of migrating metadata.
 
 Approaches that leverage the workload's spatial locality ({\it i.e.} requests
 targeted at a subset of directories or files) focus on metadata distribution
-across a cluster. File systems that hash their namespace spread metadata
-evenly across the cluster but do not account for spatial locality.  IndexFS
-tries to alleviate this problem by distributing whole directories to different
-nodes.  While this is an improvement, it does not address the fundamental data
-layout problem.  Table-based mapping, done in systems like SkyFS, pNFS, and
+across a cluster. File systems that hash their namespace spread metadata evenly
+across the cluster but do not account for spatial locality.  IndexFS and HopsFS
+try to alleviate this problem by distributing whole directories to different
+nodes. This is the default partitioning scheme policy in HopsFS, based on
+metadata operation frequencies (about 95\% of the operations are list, read, and
+stat), although this policy can be adjusted per-application demands.  While
+this is an improvement, it does not address the fundamental data layout
+problem.  Table-based mapping, done in systems like SkyFS, pNFS, and
 CalvinFS~\cite{thomson:fast2015-calvinfs}, is another metadata sharding
 technique, where the mapping of path to inode is done by a centralized server
 or data structure. These systems are static and while they may be able to
@@ -521,14 +534,20 @@ Another technique is to assign subtrees of the hierarchical namespace to server
 nodes. Most systems use a static scheme to partition the namespace at setup,
 which requires a knowledgeable administrator. Ursa Minor and
 Farsite~\cite{doucer:osdi2006-farsite-dir} traverse the namespace to assign
-related inode ranges, such as inodes in the same subtree, to servers. This
-benefits performance because the metadata server nodes can act independently
-without synchronizing their actions, making it easy to scale for breadth
-assuming that incoming data is balanced hierarchically.  Unfortunately, static
-distribution limits the system's ability to adapt to hotspots/flash crowds and
-to maintain balance as data is added.  Some systems, like Panasas, allow
-certain degrees of dynamicity by supporting the addition of new subtrees at
-runtime, but adapting to the current workload is ignored. 
+related inode ranges, such as inodes in the same subtree, to servers. Although
+file system namespace partitioning schemes can be defined {\it a-priori} in
+HopsFS, the default policy preserves the locality of directory listings and
+reads by grouping siblings on the same physical node and hashing children to
+different servers.  We classify this approach as subtree partitioning because
+HopsFS has the ability to change policies, unlike IndexFS, whose global policy
+is to hash metadata for distribution and cache ancestor metadata to reduce
+hotspots.  This benefits performance because the metadata server nodes can act
+independently without synchronizing their actions, making it easy to scale for
+breadth assuming that incoming data is balanced hierarchically.  Unfortunately,
+static distribution limits the system's ability to adapt to hotspots/flash
+crowds and to maintain balance as data is added.  Some systems, like Panasas,
+allow certain degrees of dynamicity by supporting the addition of new subtrees
+at runtime, but adapting to the current workload is ignored.
 
 %For metadata writes it does a distributed transaction; monotonic writes with
 %concurrent clients fail and do pessimistic locking through a mediated lock
