@@ -273,15 +273,20 @@ co-locating metadata servers with storage servers.
 PVFS2~\cite{devulapalli:ipdps07-pvfs2} lets users spin up metadata servers on
 both storage and non-storage servers but the disadvantage of this approach is
 resource contention and poor file system metadata locality, respectively.
-Another approach is to orchestrate a dedicated metadata cluster from a
-centralized lock manager that accounts for load imbalance and locality.
+Similarly, the Azure Data Lake Store (ADLS) file
+system~\cite{ramakrishnan:sigmod17-adls} stores some types of metadata with
+data and some in the centralized metadata store; Microsoft can afford to keep
+metadata localized to a single server because they relax consistency semantics
+and have a clean-slate file system custom-built for their workloads.  Another
+approach is to orchestrate a dedicated metadata cluster from a centralized lock
+manager that accounts for load imbalance and locality.
 GPFS~\cite{schmuck:fast2002-gpfs} assigns a process to be the ``global lock
 manager", which is the authority of all locks and synchronizes access to
 metadata. Local servers become the authority of metadata by contacting the
 global lock manager, enabling optimizations like reducing RPCs. A decentralized
 version of this approach is to associate an authority process per inode. For
 example, Lustre, CephFS, IndexFS, and Panasas servers manage parts of the
-namespace and respond to client requests for locks. These approaches have more
+namespace and respond to client requests for locks.  These approaches have more
 complexity but are flexible enough to service a range of workloads.
 
 \subsection{Caching Inodes}
@@ -348,11 +353,12 @@ consistency completely by letting interfering clients read files opened for
 writing~\cite{hakimzadeh:dais14-hdfs-consistency};
 HopsFS~\cite{niaza:fast17-hopsfs}, a fork of HDFS with a more scalable metadata
 service, relaxes consistency even further by allowing multiple readers and
-multiple writers; and CephFS offers the ``Lazy IO" option, which lets clients
-buffer reads/writes even if other clients have the file open and if the client
-maintains its own cache coherency~\cite{docs:cephcaps}. As noted earlier, many
-of these relaxed consistency semantics are for application-specific
-optimizations.
+multiple writers; ADLS has unique implementations catered to the types of
+workloads at Microsoft, some of which have non-POSIX IO APIs; and CephFS offers
+the ``Lazy IO" option, which lets clients buffer reads/writes even if other
+clients have the file open and if the client maintains its own cache
+coherency~\cite{docs:cephcaps}. As noted earlier, many of these relaxed
+consistency semantics are for application-specific optimizations.
 
 \section{Global Semantics: Durability}
 
