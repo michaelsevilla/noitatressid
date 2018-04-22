@@ -99,10 +99,9 @@ We choose these use cases because they are representative of two very different
 architectures:  scale-out and scale-up (although the line between scale-up and
 out has been blurred recently~\cite{gigaspaces:whitepaper2011-su-vs-so,
 michael:2007pdps-scale-up-x-scale-out,
-rowstron:hotcdp2012-hadoop-vs-single-node, sevilla:discs2013-framework
+rowstron:hotcdp2012-hadoop-vs-single-node, sevilla:discs2013-framework, 
 sevilla:lspp2014-supmr}).
 
-recently
 % Locality is a big part of workloads
 \subsection{Spatial Locality Within Directories}
 \label{sec:spatial-locality-within-directories}
@@ -528,15 +527,19 @@ across a cluster. File systems that hash their namespace spread metadata evenly
 across the cluster but do not account for spatial locality.  IndexFS and HopsFS
 try to alleviate this problem by distributing whole directories to different
 nodes. This is the default partitioning scheme policy in HopsFS, based on
-metadata operation frequencies (about 95\% of the operations are list, read, and
-stat), although this policy can be adjusted per-application demands.  While
+metadata operation frequencies (about 95\% of the operations are list, read,
+and stat), although this policy can be adjusted per-application demands.  While
 this is an improvement, it does not address the fundamental data layout
 problem.  Table-based mapping, done in systems like SkyFS, pNFS, and
 CalvinFS~\cite{thomson:fast2015-calvinfs}, is another metadata sharding
 technique, where the mapping of path to inode is done by a centralized server
-or data structure. These systems are static and while they may be able to
-exploit locality at system install time, their ability to scale or adapt with
-the workload is minimal.
+or data structure. Colossus~\cite{serenyi:pdsw17-keynote}, the successor to
+GFS, implements a multi-node metadata service using
+BigTable~\cite{chang:osdi2006-bigtable} (Google's distributed map data model),
+so metadata is found by querying specific tablets; bottlenecks are mitigated by
+workload-specific implementations and aggressive caching.  These systems are
+static and while they may be able to exploit locality at system install time,
+their ability to scale or adapt with the workload is minimal.
 
 % website:lustre
 Another technique is to assign subtrees of the hierarchical namespace to server
