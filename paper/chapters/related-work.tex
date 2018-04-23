@@ -557,9 +557,11 @@ hotspots.  This benefits performance because the metadata server nodes can act
 independently without synchronizing their actions, making it easy to scale for
 breadth assuming that incoming data is balanced hierarchically.  Unfortunately,
 static distribution limits the system's ability to adapt to hotspots/flash
-crowds and to maintain balance as data is added.  Some systems, like Panasas,
-allow certain degrees of dynamicity by supporting the addition of new subtrees
-at runtime, but adapting to the current workload is ignored.
+crowds and to maintain balance as data is added.  Some systems, like Panasas
+and HDFS Federation~\cite{kaushik:website14-federation,
+kakoulli:sigmod17-octopusfs}, allow certain degrees of dynamicity by supporting
+the addition of new subtrees at runtime, but adapting to the current workload
+is ignored.
 
 %For metadata writes it does a distributed transaction; monotonic writes with
 %concurrent clients fail and do pessimistic locking through a mediated lock
@@ -628,7 +630,10 @@ understanding these protocols improves load balancing because developers can
 more effectively select metrics that systems should use to make migration
 decisions, such as what types of requests cause the most load and what
 resources get saturated when the system is overloaded ({\it e.g.}, increasing
-latencies, lower throughput, etc.).
+latencies, lower throughput, etc.). A scalarization of many metrics into a
+single metric is a common technique ({\it e.g.} Google's
+WSMeter~\cite{lee:asplos18-wsmeter}) but may not work for all types of
+policies.
 
 \item \textbf{guiding optimizations with policies}. Policies should be shaped
 by applications but most policies are hard-coded into the storage system or
