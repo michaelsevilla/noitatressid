@@ -176,8 +176,8 @@ is clear that client mode does not perform as well for read-heavy workloads. We
 even see a throughput improvement when migrating all load off the first server,
 leaving the first server to do administrative tasks (this is common in the
 metadata cluster because the first server does a lot of the cache coherence
-work) while the second server does all the processing. Proxy mode does the
-best in both cases and shows large performance gains when completely decoupling
+work) while the second server does all the processing. Proxy mode does better
+in both cases and shows large performance gains when completely decoupling
 client request handling and operation processing in Proxy Mode (Full).  The
 parameter that controls the migration units helps the administrator control the
 sequencer co-location or distribution across the cluster. This trade-off was

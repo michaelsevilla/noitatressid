@@ -79,7 +79,9 @@ shown by the thick line in Figure~\ref{fig:cache-management}, detects key
 access patterns and re-sizes the cache accordingly.  Without tuning or
 parameter sweeps, our solution saves more memory than a hand-tuned cache
 without any performance degradation, works for a variety of initial conditions,
-and could generalize to similar applications.
+and could generalize to similar applications. The fundamental insight is that
+the optimal thresholds for different parameters are difficult to determine {\it
+a-priori}; instead our policy adjusts as the application runs.
 
 % What is Mantle
 In this section we are presenting the successful use of our data management

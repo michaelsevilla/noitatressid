@@ -91,7 +91,7 @@ Mantle builds on the implementations and data structures in the CephFS balancer,
 	\dsp
 	\caption{The Mantle environment.\label{table:metrics}}    
 \end{table}
-Mantle decouples policy from mechanism by letting the designer inject code to control 4 policies: load calculation, ``when" to move load, ``where" to send load, and the accuracy of the decisions. Mantle balancers are written in Lua because Lua is fast (the LuaJIT virtual machine achieves near native performance) and it runs well as modules in other languages~\cite{grawinkel:pdsw2012-lua}. The balancing policies are injected at run time with Ceph's command line tool, {\it e.g.,} \texttt{\small ceph tell mds.0 injectargs mds\_bal\_metaload IWR}. This command means ``tell MDS 0 to calculate load on a dirfrag by the number of inode writes".
+Mantle decouples policy from mechanism by letting the designer inject code to control 4 policies: load calculation, ``when" to move load, ``where" to send load, and the accuracy of the decisions. Mantle balancers are written in Lua because Lua is fast (the LuaJIT virtual machine achieves near native performance) and it runs well as modules in other languages~\cite{grawinkel:pdsw2012-lua}. We could have used C but Lua gives administrators a simple syntax for writing short, storage-agnostic code that can be changed dynamically. The balancing policies are injected at run time with Ceph's command line tool, {\it e.g.,} \texttt{\small ceph tell mds.0 injectargs mds\_bal\_metaload IWR}. This command means ``tell MDS 0 to calculate load on a dirfrag by the number of inode writes".
 
 % Global variables
 Mantle provides a general environment with global variables and functions, shown on the left side of Figure~\ref{figure:balancer-api}, that injectable code can use. Local metrics are the current values for the metadata loads and are usually used to account for the difference between the stale global load and the local load. The library extracts the per-MDS metrics from the MDS heartbeats and puts the global metrics into an MDSs array. The injected code accesses the metric for MDS {\it i} using MDSs[i][``metric"]. The metrics and functions are described in detail in Table~\ref{table:metrics}. The labeled arrows between the phases in Figure~\ref{figure:balancer-api} are the inputs and outputs to the phases; inputs can be used and outputs must be filled by the end of the phase.
@@ -201,7 +201,7 @@ synchronous behavior is not the default behavior for RADOS operations, so we
 achieve this with a timeout: if the asynchronous read does not come back within
 half the balancing tick interval the operation is canceled and a Connection
 Timeout error is returned. By default, the balancing tick interval is 10
-seconds, so Mantle will use a 5 second second timeout.
+seconds, so Mantle will use a 5 second timeout.
 
 This design allows Mantle to immediately return an error if anything
 RADOS-related goes wrong.  We use this implementation because we do not want to

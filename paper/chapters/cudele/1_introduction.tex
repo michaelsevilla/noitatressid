@@ -24,16 +24,18 @@ across tiers.
 % What is HPC doing?
 To address this, developers are relaxing the consistency and durability
 semantics in the file system because weaker guarantees are sufficient for their
-applications. For example, many HPC batch jobs do not need the strong
-consistency that the file system provides, so
-BatchFS~\cite{zheng:pdsw2014-batchfs} and DeltaFS~\cite{zheng:pdsw2015-deltafs}
-do more client-side processing and merge updates when the job is done.
-Developers in these domains are turning to these non-POSIX IO solutions because
-their applications are well-understood ({\it e.g.}, well-defined read/write
-phases, synchronization only needed during certain phases, workflows describing
-computation, etc.) and because these applications wreak havoc on file systems
-designed for general-purpose workloads ({\it e.g.}, checkpoint-restart's N:N
-and N:1 create patterns~\cite{bent_plfs_2009}).
+applications. In a sense, these developers feel that the performance benefits
+of these techniques outweigh the risk of violating correctness.  For example,
+many HPC batch jobs do not need the strong consistency that the file system
+provides, so BatchFS~\cite{zheng:pdsw2014-batchfs} and
+DeltaFS~\cite{zheng:pdsw2015-deltafs} do more client-side processing and merge
+updates when the job is done.  Developers in these domains are turning to these
+non-POSIX IO solutions because their applications are well-understood ({\it
+e.g.}, well-defined read/write phases, synchronization only needed during
+certain phases, workflows describing computation, etc.) and because these
+applications wreak havoc on file systems designed for general-purpose workloads
+({\it e.g.}, checkpoint-restart's N:N and N:1 create
+patterns~\cite{bent_plfs_2009}).
 
 \begin{figure}[tb] \centering
 \includegraphics[width=0.7\textwidth]{./chapters/cudele/figures/subtree-policies1.png}

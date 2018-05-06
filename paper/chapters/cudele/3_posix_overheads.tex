@@ -127,8 +127,9 @@ underlying distributed file system.
 \subsection{Strong Consistency}
 \label{sec:strong-consistency}
 
-Access to metadata in a POSIX IO-compliant file system is strongly consistent, so
-reads and writes to the same inode or directory are globally ordered.  The
+Access to metadata in a POSIX IO-compliant file system is strongly consistent,
+so reads and writes to the same inode or directory have an order agreed upon by
+all processes ({\it e.g.}, a type of global order for all clients and servers). The
 synchronization and serialization machinery needed to ensure that all clients
 see the same state has high overhead.
 

@@ -7,7 +7,7 @@ and allow users to group similar data together in an unbounded way; the number
 of files/directories, the shape of the namespace, and the depth of the
 hierarchy are free to grow as large as the user wants~\cite{levy:acm90-survey,
 tanenbaum:book05-os, arpaci-dusseau:book14-os}.  Examples include file systems,
-DNS, LAN network topologies, and scoping in programming languages.  Because of
+DNS, LAN network topologies, and static scoping in programming languages.  Because of
 this tree-likes structure, we call portions of the namespaces ``subtrees".  The
 momentum of namespaces as a data model and the overwhelming amount of legacy
 code written for namespaces make the data model relatively future proof.
@@ -61,7 +61,7 @@ work. We conclude this section by scoping the thesis.
 
 % What is the metadata management problem?
 File system workload are made up mostly of metadata requests, which are small
-and have locality locality~\cite{roselli:atec2000-FS-workloads,
+and have locality~\cite{roselli:atec2000-FS-workloads,
 abad:ucc2012-mimesis, leung:atc08-cifs}.  This skewed workload causes
 scalability issues in file systems because solutions for scaling data IO do not
 work for metadata IO~\cite{roselli:atec2000-FS-workloads,
@@ -85,7 +85,7 @@ only needed during certain phases~\cite{hakimzadeh:dais14-hdfs-consistency,
 zheng:pdsw2015-deltafs}, workflows describing computation~\cite{yoo_slurm_2003,
 gamblin_spack_2015}, etc.). Unfortunately, this ``clean-slate" approach only
 works for one type of workload. To build a general-purpose file system, we need
-a thorough understanding of today's workloads and how they affect metadata
+a thorough understanding of many of today's workloads and how they affect metadata
 services.  
 
 In this section, we describe modern applications ({\it i.e.} standalone
@@ -317,7 +317,8 @@ consistency~\cite{decandia:sosp2007-dynamo} and the more fine-grained
 consistency models defined by Terry et al.~\cite{terry_replicated_2013}, these
 techniques are gaining popularity because maintaining strong consistency has
 high overhead and because weaker guarantees are sufficient for many target
-applications. 
+applications. Relaxing consistency guarantees in this way may not be reasonable
+for all applications and could require additional correctness mechanisms.
 
 Batching requests together is one form of relaxing consistency because updates
 are not seen immediately. PVFS2 batches creates, Panasas combines similar
@@ -546,7 +547,7 @@ their ability to scale or adapt with the workload is minimal.
 % website:lustre
 Another technique is to assign subtrees of the hierarchical namespace to server
 nodes. Most systems use a static scheme to partition the namespace at setup,
-which requires a knowledgeable administrator. Ursa Minor and
+which requires a knowledgeable administrator ({\it i.e.} an administrator familiar with the application, data set, and storage system). Ursa Minor and
 Farsite~\cite{doucer:osdi2006-farsite-dir} traverse the namespace to assign
 related inode ranges, such as inodes in the same subtree, to servers. Although
 file system namespace partitioning schemes can be defined {\it a-priori} in
@@ -615,7 +616,7 @@ hard-coded design decisions.
 
 \section{Conclusion}
 
-This survey suggests that distributed file systems struggle:
+This survey suggests that distributed file systems struggle in:
 
 \begin{enumerate}
 

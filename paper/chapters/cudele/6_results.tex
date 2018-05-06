@@ -117,7 +117,7 @@ resolved conflicting updates in a different way.
 % RPCs vs. apply: calls to metadata server vs. RADOS TODO: why is apply so
 % slow.  apply: no CephFS changes, pulls/pushes same RADOS obj.  v_apply vs.
 % apply/persist: communicating through RADOS
-{\it Overhead of \oldcomment{RPCs}\newcomment{Consistency}:} RPCs is
+{\it Overhead of \oldcomment{RPCs}\newcomment{Consistency}:} RPCs are
 \oldcomment{\(66\times\)}\newcomment{\(19.9\times\)} slower than Volatile Apply
 because sending individual metadata updates over the network is costly.  While
 RPCs sends a request for every file create, Volatile Apply \oldcomment{writes
@@ -234,7 +234,7 @@ sevilla:sc15-mantle}, mostly due to checkpoint-restart~\cite{bent_plfs_2009}.
 For more use cases from other domains like the cloud, see
 Section~\S\ref{sec:temporal-locality-during-flash-crowds}.
 
-\newcomment{\textbf{Cudele setup}: accommodate these workloads in the global
+\newcomment{\textbf{Cudele setup}: we accommodate these workloads in the global
 namespace by configuring three subtrees with the following semantics: one with
 strong consistency and global durability (RPCs), one with invisible consistency
 and local durability (decoupled: create), and one with weak consistency and
@@ -400,7 +400,7 @@ and the metadata server revokes capabilities on directories touched by the
 interfering client. More examples can be found in
 Section~\S\ref{sec:spatial-locality-within-directories}.
 
-\newcomment{\textbf{Cudele setup}: enable global durability with Stream and
+\newcomment{\textbf{Cudele setup}: we enable global durability with Stream and
 strong consistency with RPCs to mirror the setup from the problem presented in
 Figure~\ref{fig:overhead-b}. We configure one subtree with an interfere policy
 of ``allow" and another subtree with ``block" so \texttt{-EBUSY} is

@@ -108,15 +108,15 @@ IO subtree alongside a globally durable subtree.
 
 \subsection{Subtree Schemas with Tintenfisch}
 
-In a sense, the subtree schemas and generator work presented in the Tintenfisch
-chapter is the most incomplete. The first step would be to design, test, and
-benchmark the generators we outlined for the three use cases in high
-performance computing, high energy physics, and large scale simulations.
-Resource utilization profiles for network and disk bandwidth would provide the
-most insights. Bolder avenues of future work include generating mappings of
-names to data. For example, instead of generating file system namespaces, we
-could use the same concept to change striping strategies for individual files,
-altering things such as object size, location, or naming convention. Such an
+The subtree schemas and generators work provides the most opportunities for
+additional research. The first step would be to design, test, and benchmark
+the generators we outlined for the three use cases in high performance
+computing, high energy physics, and large scale simulations.  Resource
+utilization profiles for network and disk bandwidth would provide the most
+insights. Bolder avenues of future work include generating mappings of names to
+data. For example, instead of generating file system namespaces, we could use
+the same concept to change striping strategies for individual files, altering
+things such as object size, location, or naming convention. Such an
 implementation would help users move data amongst storage systems so users
 could, for example, move data from CephFS to Lustre. Finally, we want to use
 the namespace schema framework to generate application-specific metadata to

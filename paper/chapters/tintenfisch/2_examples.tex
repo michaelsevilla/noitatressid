@@ -124,7 +124,7 @@ For reading a checkpoint, clients must coalesce index files to reconstruct the
 PLFS file. Figure~\ref{fig:plfs_problem} shows that the read metadata requests
 (``readdir" and ``open") outnumber the create requests by a factor of
 \(4\times\). Metadata read requests are notoriously
-slow~\cite{carns:ipdps09-pvfs, eshel:fast10-panache}, so like create requests,
+slow because of the cost of listing directories~\cite{carns:ipdps09-pvfs, eshel:fast10-panache}, so like create requests,
 RPCs are probably untenable. If the checkpoint had been written with the
 decoupled namespace approach, file system metadata would be scattered across
 clients so metadata would need to be coalesced before restarting the
