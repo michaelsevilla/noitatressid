@@ -181,14 +181,16 @@ performance suffers.
 % TODO: what is the cost of trimming the cache?
 % TODO: does CephFS still cache inodes when I turn off caching? Why is still keeping inodes in memory? Gah!
 
-\textbf{Comparison to decoupled namespaces}: Decoupled namespaces
-merge batches of metadata operations into the global namespaces when the job
-completes.  In BatchFS, the merge is delayed by the application using an API to
-switch between asynchronous and synchronous mode. The merge itself is explicitly
-managed by the application but future work looks at more automated
-methodologies. In DeltaFS, snapshots of the metadata subtrees stays on the client
-machines; there is no ground truth and consistent namespaces are constructed
-and resolved at application read time or when a 3rd party system ({\it e.g.},
-middleware, scheduler, etc.) needs a view of the metadata. As a result, all the
-overheads of maintaining consistency that we showed above are delayed until the
-merge phase.
+\textbf{Comparison to decoupled namespaces}: Decoupled namespaces merge batches
+of metadata operations into the global namespaces when the job completes.  In
+BatchFS, the merge is delayed by the application using an API to switch between
+asynchronous and synchronous mode. The merge itself is explicitly managed by
+the application but future work looks at more automated methodologies. In
+DeltaFS, snapshots of the metadata subtrees stays on the client machines; there
+is no ground truth and consistent namespaces are constructed and resolved at
+application read time or when a 3rd party system ({\it e.g.}, middleware,
+scheduler, etc.) needs a view of the metadata. As a result, all the overheads
+of maintaining consistency that we showed above are delayed until the merge
+phase. Solving correctness bugs that may arise from this functionality could be
+done with something like lineage-driven fault
+injection~\cite{alvaro:sigmod15-ldfi}.

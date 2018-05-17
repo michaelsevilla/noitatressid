@@ -147,26 +147,26 @@ in addition} to reading the contents of the index files themselves.
 \label{sec:hep}
 
 % the data
-The High Energy Physics (HEP) community uses a framework called ROOT to
-manipulate, manage, and visualize data about proton-proton collisions collected
-at the large hadron collider (LHC). The data is used to re-simulate phenomena
-of interest for analysis and there are different types of reconstructions each
-with various granularities. The data is organized as nested, object oriented
-event data of arbitrary type ({\it e.g.}, particle objects, records of
-low-level detector hit properties, etc.).  Physicists analyze the data set by
-downloading interesting events, which are stored as a list of objects in ROOT
-files.  ROOT file data is accessed by consulting metadata in the header and
-seeking to a location in the bytestream, as shown in
-Figure~\ref{fig:tree_hep_a}.  The ROOT file has both data and ROOT-specific
-metadata called Logical Record Headers (LRH).  For this discussion, the
-following objects are of interest: a ``Tree" is a table of a collection of
-events, listed sequentially and stored in a flat namespace; a ``Branch" is a
-data container representing columns of a Tree; and ``Baskets" are byte ranges
-partitioned by events and indexed by LRHs.  Clients request Branches and data
-is transferred as Baskets; so Branches are the logical view of the data for
-users and Baskets are the compression, parallelization, and transfer unit.  The
-advantages of the ROOT framework is the ability to (1) read only parts of the
-data and (2) easily ingest remote data over the network.  
+The High Energy Physics (HEP) community uses a framework called
+ROOT~\cite{nasiriGerdeh:techreport18-root} to manipulate, manage, and visualize
+data about proton-proton collisions collected at the large hadron collider
+(LHC). The data is used to re-simulate phenomena of interest for analysis and
+there are different types of reconstructions each with various granularities.
+The data is organized as nested, object oriented event data of arbitrary type
+({\it e.g.}, particle objects, records of low-level detector hit properties,
+etc.).  Physicists analyze the data set by downloading interesting events,
+which are stored as a list of objects in ROOT files.  ROOT file data is
+accessed by consulting metadata in the header and seeking to a location in the
+bytestream, as shown in Figure~\ref{fig:tree_hep_a}.  The ROOT file has both
+data and ROOT-specific metadata called Logical Record Headers (LRH).  For this
+discussion, the following objects are of interest: a ``Tree" is a table of a
+collection of events, listed sequentially and stored in a flat namespace; a
+``Branch" is a data container representing columns of a Tree; and ``Baskets"
+are byte ranges partitioned by events and indexed by LRHs.  Clients request
+Branches and data is transferred as Baskets; so Branches are the logical view
+of the data for users and Baskets are the compression, parallelization, and
+transfer unit.  The advantages of the ROOT framework is the ability to (1) read
+only parts of the data and (2) easily ingest remote data over the network.  
 
 %Reconstruction takes detector conditions ({\it
 %e.g.}, alignment, position of the beam, etc.) as input.  
@@ -321,15 +321,17 @@ Branches, corresponding to a billion files in the namespace approach.  To
 quantify (2), the read and write runtime over six runs of replaying a trace of
 Branch access from the NTupleMaker application is shown in
 Figure~\ref{fig:hep_runtime}, where the \(x\)-axis is approaches for storing
-ROOT data.  Using the namespace approach with RPCs is far slower because of the
-metadata load and because many small objects are pulled over the network.
-Although the file approach reads more data than is necessary since the stripe
-size of the file is not aligned to Baskets, the runtime is still \(16.6\times\)
-faster. Decoupling the namespace is much faster for the namespace approach but
-the cost of materializing file system metadata makes it slower than the file
-approach.  Note that this is one (perhaps pessimistic) example workload; the
-ROOT file is 1.7GB and 65\% of the file is accessed so the namespace approach
-might be more scalable for workloads that access fewer Baskets.
+ROOT data.  We replay the trace by translating Branch accesses into Baskets
+with RootUtils~\cite{nasiriGerdeh:techreport18-rootutils}.  Using the namespace
+approach with RPCs is far slower because of the metadata load and because many
+small objects are pulled over the network.  Although the file approach reads
+more data than is necessary since the stripe size of the file is not aligned to
+Baskets, the runtime is still \(16.6\times\) faster. Decoupling the namespace
+is much faster for the namespace approach but the cost of materializing file
+system metadata makes it slower than the file approach.  Note that this is one
+(perhaps pessimistic) example workload; the ROOT file is 1.7GB and 65\% of the
+file is accessed so the namespace approach might be more scalable for workloads
+that access fewer Baskets.
 
 %The reason is shown in Figure~\ref{fig:hep_problem}. The file system metadata
 %accesses, characterized by many \texttt{open()} requests, incur many RPCs.
@@ -347,10 +349,11 @@ materializing parts of the namespace that are not relevant to the workload.
 
 SIRIUS~\cite{klasky:journal16-sirius} is the Exascale storage system being
 designed for the Storage System and I/O (SSIO)
-initiative~\cite{ross:report14-ssio}. The core tenant of the project is
-application hints that allow the storage to reconfigure itself for higher
-performance using techniques like tiering, management policies, data layout,
-quality of service, and load balancing.  SIRIUS uses a metadata service called
+initiative~\cite{ross:report14-ssio}. The core tenant of the project, similar
+to other projects in HPC like PDC~\cite{tang:ccgrid18-pdc}, is application
+hints that allow the storage to reconfigure itself for higher performance using
+techniques like tiering, management policies, data layout, quality of service,
+and load balancing.  SIRIUS uses a metadata service called
 EMPRESS~\cite{lawson:pdsw17-empress}, which is an SQLite instance that stores
 user-defined metadata for bounding boxes ({\it i.e.} a 3-dimensional coordinate
 space).  EMPRESS is designed to be used at any granularity, which is important

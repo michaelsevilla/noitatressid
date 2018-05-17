@@ -15,7 +15,7 @@ object).}\label{fig:overview}
 Malacology is a programmable storage system built on Ceph. A programmable
 storage system facilitates the re-use and extension of existing storage
 abstractions provided by the underlying software stack, to enable the creation
-of new services via composition.  Programmable storage differs from
+of new services via composition. Programmable storage differs from
 \emph{active storage}~\cite{riedel:vldb98}---the injection and execution of
 code within a storage system or storage device---in that the former is
 applicable to any component of the storage system, while the latter focuses on
@@ -52,4 +52,9 @@ underlying storage stack's object store.
 These interfaces are core to other efforts in programmable storage, such as
 DeclStor~\cite{watkins:hot17-declstor, watkins:techreport16-brados}, and were
 built on a systematic study of large middleware
-layers~\cite{watkins_invivo_2013, watkins:scc2012-datamods}.
+layers~\cite{watkins_invivo_2013, watkins:scc2012-datamods}.  Composing these
+abstractions in this way potentially jeopardizes the correctness of the system
+because components are used for something other than what they were designed
+for. To address this, we could use something like lineage-driven fault
+injection~\cite{alvaro:sigmod15-ldfi} to code-harden a programmable storage
+system like Malacology.
